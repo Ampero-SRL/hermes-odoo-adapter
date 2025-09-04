@@ -1,0 +1,173 @@
+version: '3.8'
+
+# Full HERMES stack with real Odoo
+# This compose file includes everything needed for production-like testing
+
+services:
+  # Database for Orion-LD
+  mongo:
+    image: mongo:6
+    platform: linux/arm64
+    command: --nojournal
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+    networks:
+      - hermes_network
+    restart: unless-stopped
+
+  # FIWARE Orion-LD Context Broker
+  orion-ld:
+    image: fiware/orion-ld:1.4.0
+    platform: linux/amd64  # Will use Rosetta on M1
+    hostname: orion
+    depends_on:
+      - mongo
+    ports:
+      - "1026:1026"
+    command: -host mongo -port 27017 -logLevel DEBUG -noCache
+    environment:
+      - ORIONLD_MONGO_HOST=mongo
+      - ORIONLD_MONGO_PORT=27017
+      - ORIONLD_LOG_LEVEL=DEBUG
+    networks:
+      - hermes_network
+    restart: unless-stopped
+
+  # PostgreSQL for real Odoo
+  postgres:
+    image: postgres:15
+    platform: linux/arm64
+    environment:
+      POSTGRES_DB: odoo
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    networks:
+      - hermes_network
+    restart: unless-stopped
+    shm_size: 256mb
+
+  # Real Odoo ERP System
+  odoo:
+    image: odoo:16
+    platform: linux/arm64
+    depends_on:
+      - postgres
+    ports:
+      - "8069:8069"
+    environment:
+      - HOST=postgres
+      - USER=odoo
+      - PASSWORD=odoo
+    volumes:
+      - odoo_web_data:/var/lib/odoo
+      - ./odoo-config:/etc/odoo:ro
+      - ./odoo-addons:/mnt/extra-addons:ro
+    networks:
+      - hermes_network
+    restart: unless-stopped
+    command: >
+      bash -c "
+        python3 /usr/bin/odoo --addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons 
+        --database=odoo
+        --db_host=postgres --db_port=5432 --db_user=odoo --db_password=odoo
+        --xmlrpc-port=8069
+        --limit-time-cpu=600 --limit-time-real=1200 --limit-memory-hard=2684354560
+        --workers=2
+        --max-cron-threads=1
+        --init=base,mrp,stock
+        --without-demo=False
+      "
+
+  # HERMES Odoo Adapter
+  adapter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    depends_on:
+      - orion-ld
+      - odoo
+    ports:
+      - "8080:8080"
+    environment:
+      - LOG_LEVEL=INFO
+      - ODOO_URL=http://odoo:8069/jsonrpc
+      - ODOO_DB=odoo
+      - ODOO_USER=admin
+      - ODOO_PASSWORD=admin
+      - ORION_URL=http://orion-ld:1026
+      - ADAPTER_PUBLIC_URL=http://adapter:8080
+      - INVENTORY_SYNC_ENABLED=true
+      - INVENTORY_SYNC_INTERVAL_MINUTES=5
+      - PROJECT_MAPPING_FILE=/app/project_mapping.json
+      - INCLUDE_RESERVED_STOCK=true
+    volumes:
+      - ../project_mapping.json:/app/project_mapping.json:ro
+    networks:
+      - hermes_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Optional: Grafana for monitoring
+  grafana:
+    image: grafana/grafana:latest
+    platform: linux/arm64
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana-config/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - hermes_network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Optional: Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    platform: linux/arm64
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus-config:/etc/prometheus:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - hermes_network
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+networks:
+  hermes_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+  postgres_data:
+    driver: local
+  odoo_web_data:
+    driver: local
+  grafana_data:
+    driver: local
+  prometheus_data:
+    driver: local

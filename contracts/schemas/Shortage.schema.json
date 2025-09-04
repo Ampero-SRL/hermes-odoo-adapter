@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hermes.example.org/schemas/Shortage.schema.json",
+  "title": "HERMES Shortage Entity Schema",
+  "description": "JSON Schema for HERMES Shortage NGSI-LD entity",
+  "type": "object",
+  "required": ["id", "type", "projectRef", "lines", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^urn:ngsi-ld:Shortage:[A-Za-z0-9_-]+$",
+      "description": "Shortage entity identifier"
+    },
+    "type": {
+      "type": "string",
+      "const": "Shortage",
+      "description": "NGSI-LD entity type"
+    },
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "NGSI-LD context"
+    },
+    "projectRef": {
+      "type": "object",
+      "required": ["type", "object"],
+      "properties": {
+        "type": {
+          "const": "Relationship"
+        },
+        "object": {
+          "type": "string",
+          "pattern": "^urn:ngsi-ld:Project:[A-Za-z0-9_-]+$",
+          "description": "Reference to Project entity"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "lines": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["sku", "missingQty", "requiredQty", "availableQty"],
+            "properties": {
+              "sku": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Product SKU"
+              },
+              "missingQty": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": 0,
+                "description": "Missing quantity"
+              },
+              "requiredQty": {
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": 0,
+                "description": "Total required quantity"
+              },
+              "availableQty": {
+                "type": "number",
+                "minimum": 0,
+                "description": "Available quantity"
+              },
+              "unit": {
+                "type": "string",
+                "default": "Unit",
+                "description": "Unit of measure"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Shortage lines"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "enum": ["open", "partial", "resolved", "cancelled"],
+          "description": "Shortage status"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "createdAt": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

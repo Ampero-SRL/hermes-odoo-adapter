@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hermes.example.org/schemas/InventoryItem.schema.json",
+  "title": "HERMES InventoryItem Entity Schema",
+  "description": "JSON Schema for HERMES InventoryItem NGSI-LD entity",
+  "type": "object",
+  "required": ["id", "type", "sku", "available", "reserved", "total", "updatedAt"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^urn:ngsi-ld:InventoryItem:[A-Za-z0-9_-]+$",
+      "description": "InventoryItem entity identifier"
+    },
+    "type": {
+      "type": "string",
+      "const": "InventoryItem",
+      "description": "NGSI-LD entity type"
+    },
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "NGSI-LD context"
+    },
+    "sku": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Product SKU"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "available": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Available quantity"
+        },
+        "unitCode": {
+          "type": "string",
+          "default": "Unit"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "reserved": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Reserved quantity"
+        },
+        "unitCode": {
+          "type": "string",
+          "default": "Unit"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "total": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Total quantity on hand"
+        },
+        "unitCode": {
+          "type": "string",
+          "default": "Unit"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "updatedAt": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "location": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "description": "Storage location"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

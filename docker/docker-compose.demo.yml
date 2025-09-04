@@ -1,0 +1,126 @@
+version: '3.9'
+
+services:
+  # MongoDB for Orion-LD (ARM64 compatible)
+  mongo:
+    image: mongo:6
+    platform: linux/arm64
+    container_name: hermes-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - hermes_network
+
+  # FIWARE Orion-LD Context Broker
+  orion-ld:
+    image: fiware/orion-ld:1.4.0
+    platform: linux/amd64  # Will use Rosetta on M1
+    container_name: hermes-orion-ld
+    depends_on:
+      - mongo
+    ports:
+      - "1026:1026"
+    environment:
+      - ORIONLD_MONGO_HOST=mongo
+      - ORIONLD_MONGO_DB=orion
+      - ORIONLD_LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1026/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hermes_network
+
+  # Odoo Mock Service (FastAPI-based for initial development)
+  odoo-mock:
+    build: ./odoo-mock
+    platform: linux/arm64
+    container_name: hermes-odoo-mock
+    ports:
+      - "8069:8069"
+    environment:
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8069/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hermes_network
+
+  # Hermes Odoo Adapter (Our main service)
+  adapter:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    platform: linux/arm64
+    container_name: hermes-adapter
+    ports:
+      - "8080:8080"
+    env_file:
+      - ../.env
+    environment:
+      - ORION_URL=http://orion-ld:1026
+      - ODOO_URL=http://odoo-mock:8069/jsonrpc
+      - ADAPTER_PUBLIC_URL=http://adapter:8080
+    depends_on:
+      - orion-ld
+      - odoo-mock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - hermes_network
+
+  # PostgreSQL (for real Odoo later)
+  postgres:
+    image: postgres:15-alpine
+    platform: linux/arm64
+    container_name: hermes-postgres
+    environment:
+      - POSTGRES_DB=odoo
+      - POSTGRES_USER=odoo
+      - POSTGRES_PASSWORD=odoo123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - hermes_network
+    profiles:
+      - full  # Only start with docker-compose --profile full up
+
+  # Real Odoo (optional, for later integration)
+  odoo:
+    image: odoo:17
+    platform: linux/amd64
+    container_name: hermes-odoo
+    depends_on:
+      - postgres
+    ports:
+      - "8070:8069"
+    environment:
+      - HOST=postgres
+      - USER=odoo
+      - PASSWORD=odoo123
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - ./odoo/addons:/mnt/extra-addons
+    networks:
+      - hermes_network
+    profiles:
+      - full  # Only start with docker-compose --profile full up
+
+volumes:
+  mongo_data:
+  postgres_data:
+  odoo_data:
+
+networks:
+  hermes_network:
+    driver: bridge

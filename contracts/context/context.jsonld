@@ -1,0 +1,111 @@
+{
+  "@context": {
+    "hermes": "https://hermes.example.org/contexts/manufacturing#",
+    "schema": "https://schema.org/",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
+    
+    "Project": "hermes:Project",
+    "Reservation": "hermes:Reservation", 
+    "Shortage": "hermes:Shortage",
+    "InventoryItem": "hermes:InventoryItem",
+    "Mission": "hermes:Mission",
+    "Task": "hermes:Task",
+    
+    "code": {
+      "@id": "hermes:code",
+      "@type": "xsd:string"
+    },
+    "station": {
+      "@id": "hermes:station",
+      "@type": "xsd:string"
+    },
+    "status": {
+      "@id": "hermes:status",
+      "@type": "xsd:string"
+    },
+    "projectRef": {
+      "@id": "hermes:projectRef",
+      "@type": "@id"
+    },
+    "lines": {
+      "@id": "hermes:lines",
+      "@type": "xsd:string"
+    },
+    "source": {
+      "@id": "hermes:source", 
+      "@type": "xsd:string"
+    },
+    "createdAt": {
+      "@id": "hermes:createdAt",
+      "@type": "xsd:dateTime"
+    },
+    "updatedAt": {
+      "@id": "hermes:updatedAt",
+      "@type": "xsd:dateTime"
+    },
+    "sku": {
+      "@id": "hermes:sku",
+      "@type": "xsd:string"
+    },
+    "available": {
+      "@id": "hermes:available",
+      "@type": "xsd:double"
+    },
+    "reserved": {
+      "@id": "hermes:reserved",
+      "@type": "xsd:double"
+    },
+    "total": {
+      "@id": "hermes:total",
+      "@type": "xsd:double"
+    },
+    "location": {
+      "@id": "hermes:location",
+      "@type": "xsd:string"
+    },
+    "qty": {
+      "@id": "hermes:qty",
+      "@type": "xsd:double"
+    },
+    "missingQty": {
+      "@id": "hermes:missingQty",
+      "@type": "xsd:double"
+    },
+    "requiredQty": {
+      "@id": "hermes:requiredQty",
+      "@type": "xsd:double"
+    },
+    "availableQty": {
+      "@id": "hermes:availableQty",
+      "@type": "xsd:double"
+    },
+    "unit": {
+      "@id": "hermes:unit",
+      "@type": "xsd:string"
+    },
+    "missionRef": {
+      "@id": "hermes:missionRef",
+      "@type": "@id"
+    },
+    "taskRef": {
+      "@id": "hermes:taskRef",
+      "@type": "@id"
+    },
+    "progress": {
+      "@id": "hermes:progress",
+      "@type": "xsd:double"
+    },
+    "startedAt": {
+      "@id": "hermes:startedAt",
+      "@type": "xsd:dateTime"
+    },
+    "endedAt": {
+      "@id": "hermes:endedAt",
+      "@type": "xsd:dateTime"
+    },
+    "error": {
+      "@id": "hermes:error",
+      "@type": "xsd:string"
+    }
+  }
+}

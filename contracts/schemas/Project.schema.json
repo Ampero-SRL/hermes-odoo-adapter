@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://hermes.example.org/schemas/Project.schema.json",
+  "title": "HERMES Project Entity Schema",
+  "description": "JSON Schema for HERMES Project NGSI-LD entity",
+  "type": "object",
+  "required": ["id", "type", "code", "status"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^urn:ngsi-ld:Project:[A-Za-z0-9_-]+$",
+      "description": "Project entity identifier"
+    },
+    "type": {
+      "type": "string",
+      "const": "Project",
+      "description": "NGSI-LD entity type"
+    },
+    "@context": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "NGSI-LD context"
+    },
+    "code": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique project code/identifier"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "station": {
+      "type": "object", 
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "description": "Target station identifier"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    },
+    "status": {
+      "type": "object",
+      "required": ["type", "value"],
+      "properties": {
+        "type": {
+          "const": "Property"
+        },
+        "value": {
+          "type": "string",
+          "enum": ["requested", "ready", "blocked", "running", "completed", "cancelled"],
+          "description": "Project status"
+        },
+        "observedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
