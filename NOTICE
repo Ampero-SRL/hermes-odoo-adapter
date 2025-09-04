@@ -1,0 +1,19 @@
+HERMES Odoo Adapter
+Copyright 2024 Ampero SRL
+
+This product includes software developed by Ampero SRL (https://ampero.it).
+
+The HERMES Odoo Adapter is a FIWARE NGSI-LD to Odoo ERP bridge adapter
+developed as part of the HERMES smart manufacturing project.
+
+When redistributing or using this software in derivative works, you must:
+1. Include this NOTICE file
+2. Retain all copyright notices 
+3. Include appropriate attribution to Ampero SRL as the original author
+4. Provide a copy of the Apache License 2.0
+
+For commercial use, integration support, or consulting services,
+please contact Ampero SRL at info@ampero.it
+
+Third-party dependencies and their licenses are documented in the
+project's dependency management files.
