@@ -6,7 +6,7 @@ version: '3.8'
 services:
   # Database for Orion-LD
   mongo:
-    image: mongo:6
+    image: mongo:4.4
     platform: linux/arm64
     command: --nojournal
     volumes:
@@ -25,7 +25,6 @@ services:
       - mongo
     ports:
       - "1026:1026"
-    command: -host mongo -port 27017 -logLevel DEBUG -noCache
     environment:
       - ORIONLD_MONGO_HOST=mongo
       - ORIONLD_MONGO_PORT=27017
@@ -65,22 +64,11 @@ services:
     volumes:
       - odoo_web_data:/var/lib/odoo
       - ./odoo-config:/etc/odoo:ro
-      - ./odoo-addons:/mnt/extra-addons:ro
+      - ./odoo-addons:/mnt/extra-addons
     networks:
       - hermes_network
     restart: unless-stopped
-    command: >
-      bash -c "
-        python3 /usr/bin/odoo --addons-path=/mnt/extra-addons,/usr/lib/python3/dist-packages/odoo/addons 
-        --database=odoo
-        --db_host=postgres --db_port=5432 --db_user=odoo --db_password=odoo
-        --xmlrpc-port=8069
-        --limit-time-cpu=600 --limit-time-real=1200 --limit-memory-hard=2684354560
-        --workers=2
-        --max-cron-threads=1
-        --init=base,mrp,stock
-        --without-demo=False
-      "
+    command: ["odoo", "-c", "/etc/odoo/odoo.conf"]
 
   # HERMES Odoo Adapter
   adapter:

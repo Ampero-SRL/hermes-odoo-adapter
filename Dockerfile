@@ -15,17 +15,18 @@ RUN pip install poetry==$POETRY_VERSION
 
 # Configure Poetry
 ENV POETRY_NO_INTERACTION=1 \
-    POETRY_VENV_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
     POETRY_CACHE_DIR=/opt/poetry \
     POETRY_HOME="/opt/poetry"
 
 WORKDIR /app
 
-# Copy Poetry files
+# Copy Poetry metadata required for dependency installation
 COPY pyproject.toml poetry.lock* ./
+COPY README.md ./
 
-# Install dependencies
-RUN poetry install --no-dev && rm -rf $POETRY_CACHE_DIR
+# Install runtime dependencies only (project source copied later)
+RUN poetry install --only main --no-root && rm -rf $POETRY_CACHE_DIR
 
 # Production stage
 FROM python:3.11-slim as production
@@ -47,6 +48,7 @@ COPY --from=builder --chown=appuser:appgroup /app/.venv /app/.venv
 
 # Ensure we use the venv
 ENV PATH="/app/.venv/bin:$PATH"
+ENV PYTHONPATH=/app/src
 
 # Copy application code
 COPY --chown=appuser:appgroup src/ ./src/

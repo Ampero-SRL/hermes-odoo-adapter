@@ -198,9 +198,7 @@ async def jsonrpc_endpoint(request: JsonRpcRequest):
     try:
         if request.method == "call":
             return handle_call(request)
-        else:
-            raise HTTPException(status_code=400, detail=f"Unknown method: {request.method}")
-            
+        raise HTTPException(status_code=400, detail=f"Unknown method: {request.method}")
     except Exception as e:
         logger.error(f"Error processing request: {e}")
         return JsonRpcResponse(
@@ -211,31 +209,61 @@ async def jsonrpc_endpoint(request: JsonRpcRequest):
 def handle_call(request: JsonRpcRequest) -> JsonRpcResponse:
     """Handle Odoo call method"""
     params = request.params
-    
-    # Extract call parameters
-    db = params.get("db")
-    uid = params.get("uid", 1)  # Default admin user
-    password = params.get("password", "admin")
-    model = params.get("model")
+    service = params.get("service")
     method = params.get("method")
     args = params.get("args", [])
-    kwargs = params.get("kwargs", {})
-    
-    logger.info(f"Call: {model}.{method} with args={args}")
-    
-    # Route to appropriate handler
-    if model == "product.product":
-        result = handle_product_product(method, args, kwargs)
-    elif model == "mrp.bom":
-        result = handle_mrp_bom(method, args, kwargs)
-    elif model == "mrp.bom.line":
-        result = handle_mrp_bom_line(method, args, kwargs)
-    elif model == "stock.quant":
-        result = handle_stock_quant(method, args, kwargs)
-    else:
-        raise ValueError(f"Unknown model: {model}")
-    
-    return JsonRpcResponse(id=request.id, result=result)
+
+    if service == "common":
+        result = handle_common_service(method, args)
+        return JsonRpcResponse(id=request.id, result=result)
+
+    if service == "object":
+        if method != "execute_kw":
+            raise ValueError(f"Unsupported object method: {method}")
+        if len(args) < 6:
+            raise ValueError("Invalid execute_kw arguments")
+
+        db, uid, password, model, model_method, method_args = args[:6]
+        kwargs = args[6] if len(args) > 6 else {}
+
+        logger.info(
+            "Call: %s.%s (db=%s, uid=%s) args=%s kwargs=%s",
+            model,
+            model_method,
+            db,
+            uid,
+            method_args,
+            kwargs,
+        )
+
+        if model == "product.product":
+            result = handle_product_product(model_method, method_args, kwargs)
+        elif model == "mrp.bom":
+            result = handle_mrp_bom(model_method, method_args, kwargs)
+        elif model == "mrp.bom.line":
+            result = handle_mrp_bom_line(model_method, method_args, kwargs)
+        elif model == "stock.quant":
+            result = handle_stock_quant(model_method, method_args, kwargs)
+        else:
+            raise ValueError(f"Unknown model: {model}")
+
+        return JsonRpcResponse(id=request.id, result=result)
+
+    raise ValueError(f"Unknown service: {service}")
+
+def handle_common_service(method: str, args: List[Any]) -> Any:
+    """Handle calls to the 'common' service"""
+    if method == "authenticate":
+        # args: [db, username, password, context]
+        return 1  # Mock admin user ID
+    if method == "version":
+        return {
+            "server_version": "17.0",
+            "server_version_info": [17, 0, 0, "final", 0],
+            "server_serie": "17.0",
+            "protocol_version": 1,
+        }
+    raise ValueError(f"Unknown common method: {method}")
 
 def handle_product_product(method: str, args: List, kwargs: Dict) -> Any:
     """Handle product.product model calls"""
@@ -272,6 +300,20 @@ def handle_product_product(method: str, args: List, kwargs: Dict) -> Any:
                     filtered_products = [p for p in filtered_products if p.get("default_code") == value]
         
         return [p["id"] for p in filtered_products]
+    
+    elif method == "read":
+        ids = args[0] if args else []
+        if isinstance(ids, int):
+            ids = [ids]
+        fields = kwargs.get("fields", ["id", "name", "default_code", "uom_id", "active"])
+        result = []
+        for product in PRODUCTS:
+            if product.get("id") in ids:
+                item = {field: product.get(field) for field in fields if field in product}
+                # Assume all products active unless specified
+                item.setdefault("active", True)
+                result.append(item)
+        return result
     
     raise ValueError(f"Unknown method: {method}")
 

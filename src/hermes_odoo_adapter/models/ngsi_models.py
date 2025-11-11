@@ -2,8 +2,29 @@
 NGSI-LD entity models for HERMES manufacturing context
 """
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
-from pydantic import BaseModel, Field, validator
+from pathlib import Path
+import json
+from typing import Any, Dict, List, Optional, Union, Literal
+from pydantic import BaseModel, Field, ConfigDict, field_validator
+
+from ..settings import settings
+
+_CONTEXT_FILE = Path(__file__).resolve().parents[2] / "contracts/context/context.jsonld"
+
+def _load_custom_context() -> Dict[str, Any]:
+    try:
+        with open(_CONTEXT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("@context", {})
+    except Exception:
+        return {}
+
+CUSTOM_CONTEXT = _load_custom_context()
+
+DEFAULT_CONTEXT = [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    CUSTOM_CONTEXT,
+]
 
 
 class NGSILDProperty(BaseModel):
@@ -12,9 +33,7 @@ class NGSILDProperty(BaseModel):
     value: Any
     observedAt: Optional[datetime] = None
     unitCode: Optional[str] = None
-    
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class NGSILDRelationship(BaseModel):
@@ -22,33 +41,23 @@ class NGSILDRelationship(BaseModel):
     type: str = "Relationship" 
     object: str = Field(..., description="URI of the related entity")
     observedAt: Optional[datetime] = None
-    
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 class NGSILDEntity(BaseModel):
     """Base NGSI-LD Entity model"""
     id: str = Field(..., description="Entity ID (must be a URI)")
     type: str = Field(..., description="Entity type")
-    context: List[str] = Field(
-        default=[
-            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-            "/context.jsonld"
-        ],
-        alias="@context"
-    )
+    context: List[str] = Field(default_factory=lambda: DEFAULT_CONTEXT.copy(), alias="@context")
     
-    @validator("id")
+    @field_validator("id")
     def validate_entity_id(cls, v: str) -> str:
         """Validate entity ID is a proper URI"""
         if not v.startswith("urn:ngsi-ld:"):
             raise ValueError("Entity ID must start with 'urn:ngsi-ld:'")
         return v
     
-    class Config:
-        allow_population_by_field_name = True
-        extra = "allow"
+    model_config = ConfigDict(populate_by_name=True, extra="allow")
 
 
 class ReservationLine(BaseModel):
@@ -56,9 +65,7 @@ class ReservationLine(BaseModel):
     sku: str = Field(..., description="Product SKU")
     qty: float = Field(..., description="Quantity to reserve", gt=0)
     unit: Optional[str] = Field(default="Unit", description="Unit of measure")
-    
-    class Config:
-        extra = "forbid"
+    model_config = ConfigDict(extra="forbid")
 
 
 class ShortageLine(BaseModel):
@@ -68,20 +75,17 @@ class ShortageLine(BaseModel):
     required_qty: float = Field(..., description="Total required quantity", gt=0, alias="requiredQty") 
     available_qty: float = Field(..., description="Available quantity", ge=0, alias="availableQty")
     unit: Optional[str] = Field(default="Unit", description="Unit of measure")
-    
-    class Config:
-        extra = "forbid"
-        allow_population_by_field_name = True
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
 
 class Project(NGSILDEntity):
     """HERMES Project entity"""
-    type: str = Field(default="Project", const=True)
+    type: Literal["Project"] = "Project"
     code: NGSILDProperty = Field(..., description="Project code/identifier")
     station: Optional[NGSILDProperty] = Field(None, description="Target station")
     status: NGSILDProperty = Field(..., description="Project status")
     
-    @validator("id", pre=True)
+    @field_validator("id", mode="before")
     def generate_project_id(cls, v: str) -> str:
         """Generate project ID from code if not provided"""
         if not v.startswith("urn:ngsi-ld:"):
@@ -111,14 +115,14 @@ class Project(NGSILDEntity):
 
 class Reservation(NGSILDEntity):
     """HERMES Reservation entity for stock reservations"""
-    type: str = Field(default="Reservation", const=True)
+    type: Literal["Reservation"] = "Reservation"
     project_ref: NGSILDRelationship = Field(..., description="Reference to Project", alias="projectRef")
     lines: NGSILDProperty = Field(..., description="Reservation lines")
     status: NGSILDProperty = Field(..., description="Reservation status")
     source: NGSILDProperty = Field(..., description="Source system")
     created_at: Optional[NGSILDProperty] = Field(None, description="Creation timestamp", alias="createdAt")
     
-    @validator("id", pre=True)
+    @field_validator("id", mode="before")
     def generate_reservation_id(cls, v: str) -> str:
         """Generate reservation ID if not provided"""
         if not v.startswith("urn:ngsi-ld:"):
@@ -152,19 +156,18 @@ class Reservation(NGSILDEntity):
             created_at=NGSILDProperty(value=datetime.utcnow().isoformat())
         )
     
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class Shortage(NGSILDEntity):
     """HERMES Shortage entity for insufficient stock"""
-    type: str = Field(default="Shortage", const=True)
+    type: Literal["Shortage"] = "Shortage"
     project_ref: NGSILDRelationship = Field(..., description="Reference to Project", alias="projectRef")
     lines: NGSILDProperty = Field(..., description="Shortage lines")
     status: NGSILDProperty = Field(..., description="Shortage status")
     created_at: Optional[NGSILDProperty] = Field(None, description="Creation timestamp", alias="createdAt")
     
-    @validator("id", pre=True)
+    @field_validator("id", mode="before")
     def generate_shortage_id(cls, v: str) -> str:
         """Generate shortage ID if not provided"""
         if not v.startswith("urn:ngsi-ld:"):
@@ -196,13 +199,12 @@ class Shortage(NGSILDEntity):
             created_at=NGSILDProperty(value=datetime.utcnow().isoformat())
         )
     
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class InventoryItem(NGSILDEntity):
     """HERMES InventoryItem entity for stock levels"""
-    type: str = Field(default="InventoryItem", const=True)
+    type: Literal["InventoryItem"] = "InventoryItem"
     sku: NGSILDProperty = Field(..., description="Product SKU")
     available: NGSILDProperty = Field(..., description="Available quantity")
     reserved: NGSILDProperty = Field(..., description="Reserved quantity") 
@@ -210,7 +212,7 @@ class InventoryItem(NGSILDEntity):
     updated_at: NGSILDProperty = Field(..., description="Last update timestamp", alias="updatedAt")
     location: Optional[NGSILDProperty] = Field(None, description="Storage location")
     
-    @validator("id", pre=True)
+    @field_validator("id", mode="before")
     def generate_inventory_id(cls, v: str) -> str:
         """Generate inventory ID from SKU if not provided"""
         if not v.startswith("urn:ngsi-ld:"):
@@ -240,5 +242,4 @@ class InventoryItem(NGSILDEntity):
             
         return item
     
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)

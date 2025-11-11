@@ -129,52 +129,59 @@ class InventorySyncWorker:
     async def _get_all_products_with_stock(self) -> List[Dict[str, Any]]:
         """Get all products that have stock quantities"""
         try:
-            # Get all stock quants from internal locations
+            # Get all stock quants from internal locations (keep zero-qty rows)
             stock_quants = await self.odoo_client.search_read(
                 "stock.quant",
                 domain=[
                     ("location_id.usage", "=", "internal"),
-                    ("quantity", ">", 0)  # Only products with positive stock
                 ],
-                fields=["product_id", "location_id", "quantity", "reserved_quantity"]
+                fields=["product_id", "location_id", "quantity", "reserved_quantity"],
+                limit=0
             )
             
-            if not stock_quants:
+            # Aggregate stock per product for quick lookup
+            stock_by_product: Dict[int, Dict[str, float]] = {}
+            for quant in stock_quants:
+                product_id = quant["product_id"][0]
+                product_stock = stock_by_product.setdefault(product_id, {"total": 0.0, "reserved": 0.0})
+                product_stock["total"] += float(quant.get("quantity", 0.0))
+                product_stock["reserved"] += float(quant.get("reserved_quantity", 0.0))
+            
+            # Fetch all active inventory products that have a SKU so zero-stock items are still represented
+            products = await self.odoo_client.search_read(
+                "product.product",
+                domain=[
+                    ("active", "=", True),
+                    ("type", "=", "product"),
+                    (settings.sku_field, "!=", False),
+                ],
+                fields=["id", "name", settings.sku_field],
+                limit=0
+            )
+            
+            if not products:
                 return []
             
-            # Get unique product IDs
-            product_ids = list(set(quant["product_id"][0] for quant in stock_quants))
-            
-            # Get product details including SKU
-            products = await self.odoo_client.read(
-                "product.product",
-                product_ids,
-                fields=["id", "name", settings.sku_field, "active"]
-            )
-            
-            # Filter only active products with SKU
-            active_products = {
-                p["id"]: p for p in products 
-                if p.get("active", True) and p.get(settings.sku_field)
-            }
-            
-            # Aggregate stock by product
             products_with_stock = []
             
-            for product_id, product_data in active_products.items():
-                # Calculate total and reserved stock for this product
-                product_quants = [q for q in stock_quants if q["product_id"][0] == product_id]
+            for product in products:
+                product_id = product["id"]
+                sku = product.get(settings.sku_field)
+                if not sku:
+                    continue
                 
-                total_qty = sum(q["quantity"] for q in product_quants)
-                reserved_qty = sum(q.get("reserved_quantity", 0) for q in product_quants)
+                stock_info = stock_by_product.get(product_id, {"total": 0.0, "reserved": 0.0})
+                total_qty = stock_info["total"]
+                reserved_qty = stock_info["reserved"]
+                available_qty = max(total_qty - reserved_qty, 0.0)
                 
                 products_with_stock.append({
                     "product_id": product_id,
-                    "sku": product_data[settings.sku_field],
-                    "name": product_data["name"],
+                    "sku": sku,
+                    "name": product["name"],
                     "total_quantity": total_qty,
                     "reserved_quantity": reserved_qty,
-                    "available_quantity": total_qty - reserved_qty
+                    "available_quantity": available_qty
                 })
             
             return products_with_stock
@@ -200,7 +207,7 @@ class InventorySyncWorker:
                 
                 result = await self.orion_client.upsert_entity(inventory_item)
                 
-                if result and "error" not in result:
+                if (result is None) or "error" not in result:
                     updated += 1
                     logger.debug("Updated inventory item", 
                                sku=sku, 

@@ -18,6 +18,9 @@ classifiers = [
     "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
     "Topic :: System :: Monitoring",
 ]
+packages = [
+    { include = "hermes_odoo_adapter", from = "src" }
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"

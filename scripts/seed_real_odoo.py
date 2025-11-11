@@ -347,6 +347,13 @@ class RealOdooSeeder:
                 continue
             
             product_id = sku_to_id[product_sku]
+            product_record = await self.client.read(
+                "product.product", product_id, ["product_tmpl_id"]
+            )
+            if not product_record or not product_record[0].get("product_tmpl_id"):
+                logger.error(f"Could not retrieve template for {product_sku}, skipping BOM")
+                continue
+            product_tmpl_id = product_record[0]["product_tmpl_id"][0]
             
             try:
                 # Check if BOM already exists
@@ -380,6 +387,7 @@ class RealOdooSeeder:
                 # Create BOM
                 bom_data = {
                     "product_id": product_id,
+                    "product_tmpl_id": product_tmpl_id,
                     "product_qty": 1.0,
                     "type": "normal",
                     "bom_line_ids": bom_lines
@@ -430,6 +438,15 @@ class RealOdooSeeder:
             "TFT-DISPLAY-7IN": 5.0,    # Very low stock
         }
         
+        inventory_id = await self.client.create(
+            "stock.inventory",
+            {
+                "name": "Initial HERMES stock seed",
+                "location_ids": [(6, 0, [stock_location_id])],
+            },
+        )
+        lines_created = 0
+
         for sku, quantity in stock_quantities.items():
             if sku not in sku_to_id:
                 logger.warning(f"SKU {sku} not found, skipping stock adjustment")
@@ -438,24 +455,30 @@ class RealOdooSeeder:
             product_id = sku_to_id[sku]
             
             try:
-                # Use stock.change.product.qty wizard to adjust stock
-                wizard_data = {
+                product_data = await self.client.read(
+                    "product.product", product_id, ["uom_id"]
+                )
+                uom_id = product_data[0]["uom_id"][0]
+
+                line_vals = {
+                    "inventory_id": inventory_id,
                     "product_id": product_id,
-                    "new_quantity": quantity,
                     "location_id": stock_location_id,
+                    "product_qty": quantity,
+                    "product_uom_id": uom_id,
                 }
-                
-                wizard_id = await self.client.create("stock.change.product.qty", wizard_data)
-                
-                # Execute the stock change
-                await self.client.call("stock.change.product.qty", "change_product_qty", [wizard_id])
-                
-                logger.info(f"Set stock for {sku}: {quantity} units")
-                
+                await self.client.create("stock.inventory.line", line_vals)
+                lines_created += 1
+                logger.info(f"Prepared stock line for {sku}: {quantity} units")
             except Exception as e:
-                logger.error(f"Error setting stock for {sku}: {e}")
-        
-        logger.info("Stock quantity setup completed")
+                logger.error(f"Error preparing stock for {sku}: {e}")
+
+        if lines_created:
+            await self.client.call("stock.inventory", "action_start", [[inventory_id]])
+            await self.client.call("stock.inventory", "action_validate", [[inventory_id]])
+            logger.info("Stock quantity setup completed")
+        else:
+            logger.warning("No stock lines were created; skipping inventory validation")
     
     async def verify_setup(self, sku_to_id: Dict[str, int]):
         """Verify the seeded data"""

@@ -1,4 +1,12 @@
-.PHONY: help up down logs build rebuild test test-unit test-integration seed demo-happy clean lint format check install dev
+.PHONY: help up down logs build rebuild test test-unit test-integration seed demo-happy clean lint format check install dev ensure-env normalize-env
+
+# Choose compose command (docker-compose v1 or docker compose v2)
+COMPOSE := $(shell if command -v docker-compose >/dev/null 2>&1; then echo docker-compose; else echo docker compose; fi)
+ENV_FILE := .env
+ENV_TEMPLATE := .env.example
+DEFAULT_STOCK_LOCATIONS := ["Stock","WH/Stock"]
+FULL_COMPOSE_FILE := docker/docker-compose.full.yml
+FULL_STACK_MODULES := base,mrp,stock
 
 # Default target
 help: ## Show this help message
@@ -7,47 +15,76 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z_-]+:.*##/ {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Docker Management
+
+ensure-env: ## Create .env from template if missing
+	@if [ ! -f $(ENV_FILE) ]; then \
+		cp $(ENV_TEMPLATE) $(ENV_FILE); \
+		echo "Created $(ENV_FILE) from template"; \
+	else \
+		echo "Using existing $(ENV_FILE)"; \
+	fi
+
+normalize-env: ## Ensure .env uses the expected JSON formats
+	@if [ -f $(ENV_FILE) ]; then \
+		python3 scripts/normalize_env.py $(ENV_FILE) '$(DEFAULT_STOCK_LOCATIONS)'; \
+	else \
+		echo "$(ENV_FILE) not found, run 'make ensure-env' first"; \
+	fi
+
 up: ## Start all services in background
-	docker-compose -f docker/docker-compose.demo.yml up -d
+	$(MAKE) ensure-env normalize-env
+	$(COMPOSE) -f docker/docker-compose.demo.yml up -d --build
 	@echo "Services starting... Check status with 'make logs'"
 
 down: ## Stop all services
-	docker-compose -f docker/docker-compose.demo.yml down
+	$(COMPOSE) -f docker/docker-compose.demo.yml down
 
 logs: ## Follow logs from all services
-	docker-compose -f docker/docker-compose.demo.yml logs -f
+	$(COMPOSE) -f docker/docker-compose.demo.yml logs -f
 
 logs-adapter: ## Follow logs from adapter service only
-	docker-compose -f docker/docker-compose.demo.yml logs -f adapter
+	$(COMPOSE) -f docker/docker-compose.demo.yml logs -f adapter
 
 build: ## Build all Docker images
-	docker-compose -f docker/docker-compose.demo.yml build
+	$(COMPOSE) -f docker/docker-compose.demo.yml build
 
 rebuild: ## Rebuild and restart services
-	docker-compose -f docker/docker-compose.demo.yml build --no-cache
-	docker-compose -f docker/docker-compose.demo.yml up -d
+	$(COMPOSE) -f docker/docker-compose.demo.yml build --no-cache
+	$(COMPOSE) -f docker/docker-compose.demo.yml up -d
 
 # Full stack with real Odoo
-up-full: ## Start full stack with real Odoo ERP
-	docker-compose -f docker/docker-compose.full.yml up -d
+up-full: ## Start full stack with real Odoo ERP (auto-initializes base modules on first run)
+	$(MAKE) ensure-env normalize-env
+	@echo "Ensuring PostgreSQL is running..."
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) up -d postgres
+	@echo "Waiting for PostgreSQL to become ready..."
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) exec -T postgres sh -c "until pg_isready -U odoo -d odoo >/dev/null 2>&1; do sleep 1; done"
+	@if ! $(COMPOSE) -f $(FULL_COMPOSE_FILE) exec -T postgres psql -U odoo -d odoo -tAc "SELECT 1 FROM information_schema.tables WHERE table_name='ir_module_module';" | grep -q 1; then \
+		echo "Initializing Odoo database modules ($(FULL_STACK_MODULES))..."; \
+		$(COMPOSE) -f $(FULL_COMPOSE_FILE) run --rm odoo odoo -c /etc/odoo/odoo.conf -i $(FULL_STACK_MODULES) --without-demo=False --stop-after-init; \
+	else \
+		echo "Odoo database already initialized. Skipping module install."; \
+	fi
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) up -d
 	@echo "🏭 Full HERMES stack with real Odoo starting..."
 	@echo "This includes: Postgres, Odoo, Orion-LD, MongoDB, and Adapter"
-	@echo "Odoo will take a few minutes to initialize on first run"
+	@echo "Odoo base modules verified; subsequent startups reuse the existing database."
 
 up-monitoring: ## Start full stack with monitoring (Grafana + Prometheus)
-	docker-compose -f docker/docker-compose.full.yml --profile monitoring up -d
+	$(MAKE) ensure-env
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) --profile monitoring up -d
 	@echo "📊 Full stack with monitoring started"
 	@echo "Grafana: http://localhost:3000 (admin/admin)"
 	@echo "Prometheus: http://localhost:9090"
 
 logs-full: ## Follow logs from full stack
-	docker-compose -f docker/docker-compose.full.yml logs -f
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) logs -f
 
 logs-odoo: ## Follow logs from real Odoo
-	docker-compose -f docker/docker-compose.full.yml logs -f odoo
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) logs -f odoo
 
 down-full: ## Stop full stack
-	docker-compose -f docker/docker-compose.full.yml down
+	$(COMPOSE) -f $(FULL_COMPOSE_FILE) down
 
 # Development
 install: ## Install Python dependencies with Poetry
@@ -65,15 +102,17 @@ test-unit: ## Run unit tests only
 
 test-integration: ## Run integration tests (requires Docker stack)
 	@echo "Starting test stack..."
-	docker-compose -f docker/docker-compose.demo.yml up -d
+	$(MAKE) ensure-env
+	$(COMPOSE) -f docker/docker-compose.demo.yml up -d
 	@echo "Waiting for services to be ready..."
 	sleep 10
 	poetry run pytest tests/integration/ -v
 	@echo "Stopping test stack..."
-	docker-compose -f docker/docker-compose.demo.yml down
+	$(COMPOSE) -f docker/docker-compose.demo.yml down
 
 test-docker: ## Run tests inside Docker container
-	docker-compose -f docker/docker-compose.demo.yml exec adapter pytest tests/ -v
+	$(MAKE) ensure-env
+	$(COMPOSE) -f docker/docker-compose.demo.yml exec adapter pytest tests/ -v
 
 # Code Quality
 lint: ## Run linting with ruff
@@ -163,11 +202,11 @@ metrics: ## Show adapter metrics
 
 # Cleanup
 clean: ## Clean up containers, volumes, and images
-	docker-compose -f docker/docker-compose.demo.yml down -v
+	$(COMPOSE) -f docker/docker-compose.demo.yml down -v
 	docker system prune -f
 
 clean-all: ## Clean up everything including images
-	docker-compose -f docker/docker-compose.demo.yml down -v --rmi all
+	$(COMPOSE) -f docker/docker-compose.demo.yml down -v --rmi all
 	docker system prune -a -f
 
 # Quick Start

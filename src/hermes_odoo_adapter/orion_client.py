@@ -2,6 +2,7 @@
 Orion-LD NGSI-LD client for HERMES Odoo Adapter
 """
 import json
+import asyncio
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin
 
@@ -80,12 +81,14 @@ class OrionClient:
             await self._client.aclose()
             self._client = None
     
-    def _get_headers(self, content_type: str = "application/ld+json") -> Dict[str, str]:
+    def _get_headers(self, content_type: Optional[str] = "application/ld+json") -> Dict[str, str]:
         """Get HTTP headers for requests"""
-        headers = {
-            "Content-Type": content_type,
+        headers: Dict[str, str] = {
             "Accept": "application/ld+json",
         }
+        
+        if content_type:
+            headers["Content-Type"] = content_type
         
         if self.tenant:
             headers["Fiware-Service"] = self.tenant
@@ -113,10 +116,12 @@ class OrionClient:
             await self.connect()
         
         url = urljoin(self.base_url + "/", endpoint.lstrip("/"))
-        headers = self._get_headers()
+        
+        headers = self._get_headers(content_type="application/ld+json")
         
         try:
             if method.upper() == "GET":
+                headers = self._get_headers(content_type=None)
                 response = await self._client.get(url, headers=headers, params=params)
             elif method.upper() == "POST":
                 response = await self._client.post(url, headers=headers, json=data, params=params)
@@ -125,6 +130,7 @@ class OrionClient:
             elif method.upper() == "PUT":
                 response = await self._client.put(url, headers=headers, json=data, params=params)
             elif method.upper() == "DELETE":
+                headers = self._get_headers(content_type=None)
                 response = await self._client.delete(url, headers=headers, params=params)
             else:
                 raise ValueError(f"Unsupported HTTP method: {method}")
@@ -151,8 +157,13 @@ class OrionClient:
                 error_details = ""
                 try:
                     error_data = response.json()
-                    error_details = error_data.get("detail", error_data.get("title", str(error_data)))
-                except:
+                    if isinstance(error_data, dict):
+                        error_details = error_data.get("detail") or error_data.get("description") or error_data.get(
+                            "title"
+                        ) or str(error_data)
+                    else:
+                        error_details = str(error_data)
+                except Exception:
                     error_details = response.text
                 
                 raise OrionAPIError(
@@ -166,7 +177,11 @@ class OrionClient:
     
     async def create_entity(self, entity: Union[NGSILDEntity, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Create a new NGSI-LD entity"""
-        entity_data = entity.dict(by_alias=True) if hasattr(entity, 'dict') else entity
+        entity_data = (
+            entity.dict(by_alias=True, exclude_none=True)
+            if hasattr(entity, "dict")
+            else entity
+        )
         entity_type = entity_data.get("type", "Unknown")
         
         with metrics.time_orion_operation("create", entity_type):
@@ -192,7 +207,11 @@ class OrionClient:
     
     async def upsert_entity(self, entity: Union[NGSILDEntity, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Upsert an NGSI-LD entity (create or update)"""
-        entity_data = entity.dict(by_alias=True) if hasattr(entity, 'dict') else entity
+        entity_data = (
+            entity.dict(by_alias=True, exclude_none=True)
+            if hasattr(entity, "dict")
+            else entity
+        )
         entity_id = entity_data.get("id")
         entity_type = entity_data.get("type", "Unknown")
         
@@ -205,8 +224,11 @@ class OrionClient:
         if existing:
             # Entity exists, update it
             # Remove id, type, and @context for update
-            update_data = {k: v for k, v in entity_data.items() 
-                          if k not in ("id", "type", "@context")}
+            update_data = {
+                k: v
+                for k, v in entity_data.items()
+                if k not in ("id", "type", "@context")
+            }
             return await self.update_entity(entity_id, update_data, entity_type)
         else:
             # Entity doesn't exist, create it
@@ -286,6 +308,18 @@ class OrionClient:
         except Exception as e:
             logger.warning("Orion-LD health check failed", error=str(e))
             return False
+
+    async def wait_until_ready(self, timeout_seconds: int = 60) -> bool:
+        """Wait for Orion to respond before proceeding"""
+        start = asyncio.get_event_loop().time()
+        while True:
+            if await self.health_check():
+                logger.info("Orion-LD is reachable")
+                return True
+            if asyncio.get_event_loop().time() - start > timeout_seconds:
+                logger.error("Timed out waiting for Orion-LD")
+                return False
+            await asyncio.sleep(2)
     
     async def ensure_subscription_exists(
         self,

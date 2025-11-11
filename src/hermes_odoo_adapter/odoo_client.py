@@ -195,8 +195,8 @@ class OdooClient:
             
             data = response.json()
             
-            if "error" in data:
-                error = data["error"]
+            error = data.get("error")
+            if error:
                 self.circuit_breaker.record_failure()
                 raise OdooAPIError(
                     f"Odoo API error: {error.get('message', 'Unknown error')}",

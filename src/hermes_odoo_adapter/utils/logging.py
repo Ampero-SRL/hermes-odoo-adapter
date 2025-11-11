@@ -87,18 +87,24 @@ class LoggingContext:
     def __init__(
         self, 
         correlation_id: Optional[str] = None,
-        project_id: Optional[str] = None
+        project_id: Optional[str] = None,
+        **extra_context: Any,
     ):
         self.correlation_id = correlation_id
         self.project_id = project_id
+        self.extra_context = extra_context
         self._correlation_token = None
         self._project_token = None
+        self._extra_tokens: Dict[str, ContextVar[Any]] = {}
     
     def __enter__(self) -> "LoggingContext":
         if self.correlation_id:
             self._correlation_token = correlation_id_var.set(self.correlation_id)
         if self.project_id:
             self._project_token = project_id_var.set(self.project_id)
+        for key, value in self.extra_context.items():
+            var = ContextVar(key, default=None)
+            self._extra_tokens[key] = (var, var.set(value))
         return self
     
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
@@ -106,6 +112,8 @@ class LoggingContext:
             correlation_id_var.reset(self._correlation_token)
         if self._project_token:
             project_id_var.reset(self._project_token)
+        for var, token in self._extra_tokens.values():
+            var.reset(token)
 
 
 def with_context(

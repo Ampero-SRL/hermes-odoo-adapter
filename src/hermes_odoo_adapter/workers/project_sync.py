@@ -5,7 +5,14 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..settings import settings
-from ..models.ngsi_models import Reservation, Shortage, InventoryItem, ReservationLine, ShortageLine
+from ..models.ngsi_models import (
+    Reservation,
+    Shortage,
+    InventoryItem,
+    ReservationLine,
+    ShortageLine,
+    CUSTOM_CONTEXT,
+)
 from ..utils.logging import get_logger, LoggingContext
 from ..utils.metrics import metrics
 from ..utils.idempotency import idempotency_helper
@@ -21,11 +28,15 @@ class ProjectSyncWorker:
     def __init__(self, odoo_client: OdooClient, orion_client: OrionClient):
         self.odoo_client = odoo_client
         self.orion_client = orion_client
-        self.subscription_id = "hermes-project-subscription"
+        self.subscription_id = "urn:ngsi-ld:Subscription:hermes-project"
         
     async def setup_subscription(self) -> bool:
         """Setup Orion-LD subscription for Project entities"""
         subscription_config = {
+            "@context": [
+                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+                CUSTOM_CONTEXT,
+            ],
             "description": "HERMES Project status change subscription",
             "subject": {
                 "entities": [{"type": "Project"}],

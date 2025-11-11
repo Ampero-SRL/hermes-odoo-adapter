@@ -2,12 +2,13 @@
 HERMES Odoo Adapter - Main FastAPI Application
 """
 import asyncio
+from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, HTTPException, Request, Response, BackgroundTasks
+from fastapi import FastAPI, HTTPException, Request, Response, BackgroundTasks, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, FileResponse
 from pydantic import BaseModel, ValidationError
 import uvicorn
 
@@ -30,6 +31,7 @@ orion_client: Optional[OrionClient] = None
 project_worker: Optional[ProjectSyncWorker] = None
 inventory_worker: Optional[InventorySyncWorker] = None
 
+CONTEXT_FILE = Path(__file__).resolve().parents[2] / "contracts/context/context.jsonld"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,6 +44,10 @@ async def lifespan(app: FastAPI):
         # Initialize clients
         odoo_client = OdooClient()
         orion_client = OrionClient()
+        
+        # Wait for Orion to be reachable before proceeding
+        if not await orion_client.wait_until_ready():
+            raise RuntimeError("Orion-LD is not ready")
         
         await odoo_client.connect()
         await orion_client.connect()
@@ -201,6 +207,14 @@ async def get_metrics():
     )
 
 
+@app.get("/context.jsonld", tags=["meta"])
+async def get_context_document():
+    """Serve NGSI-LD context document"""
+    if not CONTEXT_FILE.exists():
+        raise HTTPException(status_code=404, detail="Context document not found")
+    return FileResponse(CONTEXT_FILE, media_type="application/ld+json")
+
+
 # Webhook endpoints
 @app.post("/orion/notifications", tags=["webhooks"])
 async def handle_orion_notification(notification: OrionNotification, background_tasks: BackgroundTasks):
@@ -242,7 +256,11 @@ async def handle_odoo_webhook(request: Request, background_tasks: BackgroundTask
 
 # Administrative endpoints
 @app.post("/admin/recompute/{project_id}", tags=["admin"])
-async def recompute_project(project_id: str, request: RecomputeRequest = RecomputeRequest(), background_tasks: BackgroundTasks):
+async def recompute_project(
+    project_id: str,
+    background_tasks: BackgroundTasks,
+    request: RecomputeRequest = Body(default_factory=RecomputeRequest),
+):
     """Force recomputation of a project's reservation/shortage"""
     logger.info("Manual recompute requested", project_id=project_id)
     
