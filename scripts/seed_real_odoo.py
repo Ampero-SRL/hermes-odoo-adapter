@@ -6,6 +6,7 @@ This script connects to a real Odoo instance and creates products, BOMs,
 and stock records for the HERMES manufacturing demo.
 """
 import asyncio
+import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -21,10 +22,10 @@ setup_logging()
 logger = get_logger(__name__)
 
 # Default Odoo connection settings
-ODOO_URL = "http://localhost:8069/jsonrpc"
-ODOO_DB = "odoo"
-ODOO_USER = "admin"
-ODOO_PASSWORD = "admin"
+ODOO_URL = os.getenv("ODOO_URL", "http://localhost:8069/jsonrpc")
+ODOO_DB = os.getenv("ODOO_DB", "odoo")
+ODOO_USER = os.getenv("ODOO_USER", "admin")
+ODOO_PASSWORD = os.getenv("ODOO_PASSWORD", "admin")
 
 
 class RealOdooSeeder:
@@ -104,13 +105,75 @@ class RealOdooSeeder:
             logger.error(f"Error creating category {name}: {e}")
             return 1  # Default to 'All' category
     
+    async def archive_default_products(self):
+        """Archive default Odoo demo products to keep only HERMES products"""
+        logger.info("Archiving default Odoo products")
+
+        # Get our HERMES categories
+        our_categories = await self.client.search_read(
+            "product.category",
+            [("name", "in", ["HERMES Electrical - Components", "HERMES Electrical - Finished Goods"])],
+            ["id"]
+        )
+
+        if not our_categories:
+            logger.warning("HERMES categories not found, skipping archive")
+            return
+
+        our_cat_ids = [c["id"] for c in our_categories]
+
+        # Find all active products NOT in our categories
+        demo_products = await self.client.search_read(
+            "product.product",
+            [("categ_id", "not in", our_cat_ids), ("active", "=", True)],
+            ["id", "name"]
+        )
+
+        if not demo_products:
+            logger.info("No default products to archive")
+            return
+
+        logger.info(f"Archiving {len(demo_products)} default Odoo products")
+
+        # Archive them (set active=False)
+        for product in demo_products:
+            try:
+                await self.client.write("product.product", [product["id"]], {"active": False})
+            except Exception as e:
+                logger.warning(f"Could not archive product {product['id']}: {e}")
+
+        logger.info(f"✓ Archived {len(demo_products)} default products")
+
+    async def setup_visual_customization(self):
+        """Set up Odoo visual customizations"""
+        logger.info("Applying visual customizations")
+
+        try:
+            # Set company name and details
+            company_data = {
+                "name": "HERMES Manufacturing Demo",
+                "email": "demo@hermes-manufacturing.local",
+            }
+
+            # Update the main company (usually ID 1)
+            companies = await self.client.search("res.company", [], limit=1)
+            if companies:
+                await self.client.write("res.company", companies, company_data)
+                logger.info("✓ Updated company details")
+
+        except Exception as e:
+            logger.warning(f"Could not apply all visual customizations: {e}")
+
     async def seed_products(self) -> Dict[str, int]:
         """Seed products and return SKU to ID mapping"""
         logger.info("Seeding products in real Odoo")
-        
-        # Create product categories
-        finished_goods_cat = await self.get_or_create_category("Finished Goods")
-        components_cat = await self.get_or_create_category("Components") 
+
+        # Create HERMES parent category
+        hermes_parent_cat = await self.get_or_create_category("HERMES Electrical")
+
+        # Create product categories under HERMES parent
+        finished_goods_cat = await self.get_or_create_category("HERMES Electrical - Finished Goods")
+        components_cat = await self.get_or_create_category("HERMES Electrical - Components") 
         
         # Get default UoM (Units)
         uom_units = await self.client.search_read(
@@ -512,15 +575,21 @@ async def main():
         if not await seeder.verify_modules():
             return 1
         
+        # Apply visual customizations
+        await seeder.setup_visual_customization()
+
         # Seed data
         sku_to_id = await seeder.seed_products()
         if not sku_to_id:
             logger.error("❌ Failed to seed products")
             return 1
-        
+
         await seeder.seed_boms(sku_to_id)
         await seeder.seed_stock_quantities(sku_to_id)
-        
+
+        # Archive default Odoo products (keep only HERMES)
+        await seeder.archive_default_products()
+
         # Verify
         await seeder.verify_setup(sku_to_id)
         

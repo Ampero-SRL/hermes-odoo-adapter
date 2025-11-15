@@ -139,10 +139,15 @@ class OrionClient:
             if response.status_code == 204:
                 # No content
                 return None
-            elif response.status_code in (200, 201):
-                # Success with content
+            elif response.status_code in (200, 201, 207):
+                # Success with content (207 = Multi-Status, partial update success)
                 try:
-                    return response.json() if response.content else None
+                    result = response.json() if response.content else None
+                    # Log partial success for 207
+                    if response.status_code == 207 and result:
+                        logger.debug("Partial update success", updated=result.get("updated"),
+                                   not_updated=result.get("notUpdated"))
+                    return result
                 except json.JSONDecodeError:
                     return {"raw_response": response.text}
             elif response.status_code == 404:
@@ -223,12 +228,13 @@ class OrionClient:
         
         if existing:
             # Entity exists, update it
-            # Remove id, type, and @context for update
+            # Remove id, type, and createdAt for update, but KEEP @context (required for PATCH with application/ld+json)
             update_data = {
                 k: v
                 for k, v in entity_data.items()
-                if k not in ("id", "type", "@context")
+                if k not in ("id", "type", "createdAt")
             }
+            logger.debug("Updating entity", entity_id=entity_id, keys=list(update_data.keys()))
             return await self.update_entity(entity_id, update_data, entity_type)
         else:
             # Entity doesn't exist, create it
@@ -326,17 +332,35 @@ class OrionClient:
         subscription_id: str,
         subscription_config: Dict[str, Any]
     ) -> bool:
-        """Ensure a subscription exists, create if missing"""
+        """Ensure a subscription exists and is active"""
         existing = await self.get_subscription(subscription_id)
-        
+
         if existing:
-            logger.info("NGSI-LD subscription exists", subscription_id=subscription_id)
-            return True
-        
-        # Create subscription
+            # Check if subscription is active
+            status = existing.get("status", "active")  # Default to active if not present
+            is_active = existing.get("isActive", True)  # Default to True if not present
+
+            if status == "paused" or not is_active:
+                logger.warning(
+                    "NGSI-LD subscription exists but is paused - recreating",
+                    subscription_id=subscription_id,
+                    status=status,
+                    is_active=is_active
+                )
+                # Delete paused subscription
+                deleted = await self.delete_subscription(subscription_id)
+                if not deleted:
+                    logger.error("Failed to delete paused subscription", subscription_id=subscription_id)
+                    return False
+                # Fall through to create new subscription
+            else:
+                logger.info("NGSI-LD subscription exists and is active", subscription_id=subscription_id)
+                return True
+
+        # Create subscription (either because it didn't exist or we deleted a paused one)
         subscription_config["id"] = subscription_id
         created_id = await self.create_subscription(subscription_config)
-        
+
         if created_id:
             logger.info("NGSI-LD subscription created", subscription_id=subscription_id)
             return True

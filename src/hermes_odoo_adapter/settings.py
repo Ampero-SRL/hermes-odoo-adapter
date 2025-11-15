@@ -60,6 +60,23 @@ class Settings(BaseSettings):
         ge=10,
         le=1000
     )
+
+    inventory_allowed_skus: List[str] = Field(
+        default=[
+            "CTRL-PANEL-A1",
+            "LED-STRIP-24V-1M",
+            "BRACKET-STEEL-001",
+            "PCB-CTRL-REV21",
+            "ENCLOSURE-IP65-300",
+            "PSU-24VDC-5A",
+            "CABLE-ASSY-2M",
+            "SCREW-M4X12-DIN912",
+            "RELAY-SAFETY-24V",
+            "ESTOP-BTN-RED",
+            "TFT-DISPLAY-7IN"
+        ],
+        description="List of SKU codes that should be exposed via the inventory API. Empty list means include every product."
+    )
     
     # Project Mapping
     project_mapping_file: Optional[str] = Field(
@@ -67,10 +84,15 @@ class Settings(BaseSettings):
         description="JSON file for project code to BOM mapping"
     )
     
-    # Stock Location Configuration  
+    # Stock Location Configuration
     stock_location_names: List[str] = Field(
         default=["Stock", "WH/Stock"],
         description="Stock location names to include in calculations"
+    )
+    stock_location_id: int = Field(
+        default=8,
+        description="Odoo location ID for stock consume/produce operations (typically WH/Stock)",
+        ge=1
     )
     include_reserved_stock: bool = Field(
         default=True,
@@ -118,6 +140,13 @@ class Settings(BaseSettings):
         if not v.startswith(("http://", "https://")):
             raise ValueError("URL must start with http:// or https://")
         return v.rstrip("/")
+
+    @validator("inventory_allowed_skus", pre=True)
+    def parse_inventory_allowed_skus(cls, value):
+        """Allow comma-separated env values for SKU filters"""
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        return value
     
     @validator("stock_location_names", pre=True)
     def parse_location_names(cls, v):

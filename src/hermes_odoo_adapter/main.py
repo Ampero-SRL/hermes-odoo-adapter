@@ -129,6 +129,38 @@ class RecomputeRequest(BaseModel):
     station: Optional[str] = None
 
 
+class ConsumeRequest(BaseModel):
+    """Request to consume (decrement) stock for a SKU"""
+    project_id: str
+    sku: str
+    quantity: int
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "project_id": "urn:ngsi-ld:Project:P123",
+                "sku": "PCB-CTRL-REV21",
+                "quantity": 1
+            }
+        }
+
+
+class ProduceRequest(BaseModel):
+    """Request to produce (increment) stock for a SKU"""
+    project_id: str
+    sku: str
+    quantity: int = 1
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "project_id": "urn:ngsi-ld:Project:P123",
+                "sku": "CTRL-PANEL-A1",
+                "quantity": 1
+            }
+        }
+
+
 # Middleware for correlation ID and request timing
 @app.middleware("http")
 async def add_correlation_middleware(request: Request, call_next):
@@ -248,10 +280,91 @@ async def handle_odoo_webhook(request: Request, background_tasks: BackgroundTask
             background_tasks.add_task(inventory_worker.handle_stock_change, payload)
         
         return {"message": "Webhook received"}
-        
+
     except Exception as e:
         logger.error("Error processing Odoo webhook", error=str(e))
         raise HTTPException(status_code=400, detail=f"Webhook processing error: {str(e)}")
+
+
+# Stock Operation API Endpoints
+@app.post("/api/consume", tags=["stock-operations"])
+async def consume_stock(request: ConsumeRequest, background_tasks: BackgroundTasks):
+    """
+    Consume (decrement) stock for a given SKU
+
+    This endpoint is called by the mission controller when components are picked
+    from inventory during mission execution.
+    """
+    logger.info("Stock consume request received", sku=request.sku, quantity=request.quantity, project_id=request.project_id)
+
+    if not odoo_client:
+        raise HTTPException(status_code=503, detail="Odoo client not available")
+
+    try:
+        # Perform stock consumption
+        result = await odoo_client.consume_stock(
+            sku=request.sku,
+            quantity=request.quantity,
+            project_id=request.project_id,
+            location_id=settings.stock_location_id
+        )
+
+        # Trigger inventory sync update for this SKU in background
+        if inventory_worker:
+            background_tasks.add_task(inventory_worker.sync_product_inventory, request.sku)
+
+        return {
+            "status": "ok",
+            "message": f"Consumed {request.quantity} units of {request.sku}",
+            "details": result
+        }
+
+    except OdooError as e:
+        logger.error("Failed to consume stock", error=str(e), sku=request.sku)
+        raise HTTPException(status_code=500, detail=f"Odoo error: {str(e)}")
+    except Exception as e:
+        logger.error("Unexpected error consuming stock", error=str(e), sku=request.sku)
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+
+
+@app.post("/api/produce", tags=["stock-operations"])
+async def produce_stock(request: ProduceRequest, background_tasks: BackgroundTasks):
+    """
+    Produce (increment) stock for a given SKU
+
+    This endpoint is called by the mission controller when a finished product
+    is completed and added to inventory.
+    """
+    logger.info("Stock produce request received", sku=request.sku, quantity=request.quantity, project_id=request.project_id)
+
+    if not odoo_client:
+        raise HTTPException(status_code=503, detail="Odoo client not available")
+
+    try:
+        # Perform stock production
+        result = await odoo_client.produce_stock(
+            sku=request.sku,
+            quantity=request.quantity,
+            project_id=request.project_id,
+            location_id=settings.stock_location_id
+        )
+
+        # Trigger inventory sync update for this SKU in background
+        if inventory_worker:
+            background_tasks.add_task(inventory_worker.sync_product_inventory, request.sku)
+
+        return {
+            "status": "ok",
+            "message": f"Produced {request.quantity} units of {request.sku}",
+            "details": result
+        }
+
+    except OdooError as e:
+        logger.error("Failed to produce stock", error=str(e), sku=request.sku)
+        raise HTTPException(status_code=500, detail=f"Odoo error: {str(e)}")
+    except Exception as e:
+        logger.error("Unexpected error producing stock", error=str(e), sku=request.sku)
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 # Administrative endpoints

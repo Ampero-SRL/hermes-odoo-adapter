@@ -134,7 +134,7 @@ class Reservation(NGSILDEntity):
         cls,
         project_id: str,
         lines: List[ReservationLine],
-        status: str = "created",
+        status: str = "pending",
         source: str = "odoo"
     ) -> "Reservation":
         """Factory method to create a Reservation"""

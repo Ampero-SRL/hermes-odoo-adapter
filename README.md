@@ -9,12 +9,13 @@ A **FIWARE NGSI-LD adapter** that bridges **Odoo ERP systems** with **FIWARE Con
 
 ## ✨ Key Features
 
-✅ **Real-time Project Processing**: Automatically processes manufacturing projects from NGSI-LD notifications  
-✅ **BOM Resolution**: Resolves Bills of Materials and checks component availability  
-✅ **Stock Management**: Synchronizes inventory between Odoo and NGSI-LD context  
-✅ **Reservation & Shortage Handling**: Creates reservations for available materials, shortages for missing ones  
-✅ **Production Ready**: Circuit breakers, retry logic, metrics, and comprehensive logging  
-✅ **Docker-First**: Optimized for containerized deployment (including M1 Mac support)  
+✅ **Real-time Project Processing**: Automatically processes manufacturing projects from NGSI-LD notifications
+✅ **BOM Resolution**: Resolves Bills of Materials and checks component availability
+✅ **Bidirectional Stock Operations**: Read inventory levels AND write stock changes (consume/produce) during missions
+✅ **Stock Synchronization**: Continuously syncs inventory between Odoo and NGSI-LD context
+✅ **Reservation & Shortage Handling**: Creates reservations for available materials, shortages for missing ones
+✅ **Production Ready**: Circuit breakers, retry logic, metrics, and comprehensive logging
+✅ **Docker-First**: Optimized for containerized deployment (including M1 Mac support)
 ✅ **Comprehensive Testing**: Unit and integration tests with >90% coverage
 
 ## 🚀 Quick Start
@@ -398,6 +399,7 @@ Key environment variables:
 | `ODOO_DB` | Odoo database name | `odoo` |
 | `SKU_FIELD` | Product SKU field | `default_code` |
 | `POLL_INTERVAL_SECONDS` | Inventory sync interval | `60` |
+| `INVENTORY_ALLOWED_SKUS` | Comma-separated list of SKUs to expose via the inventory API | `CTRL-PANEL-A1,LED-STRIP-24V-1M,BRACKET-STEEL-001,PCB-CTRL-REV21,ENCLOSURE-IP65-300,PSU-24VDC-5A,CABLE-ASSY-2M,SCREW-M4X12-DIN912,RELAY-SAFETY-24V,ESTOP-BTN-RED,TFT-DISPLAY-7IN` |
 
 See [.env.example](./.env.example) for complete configuration options.
 
@@ -451,12 +453,60 @@ pytest --cov=hermes_odoo_adapter --cov-report=html
 
 ## 📡 API Endpoints
 
+### Monitoring & Health
 - `GET /healthz` - Liveness probe
 - `GET /readyz` - Readiness probe (checks Orion/Odoo connectivity)
 - `GET /metrics` - Prometheus metrics
-- `POST /orion/notifications` - Orion subscription webhook
-- `POST /admin/recompute/{projectId}` - Force recomputation
-- `GET /debug/reservation/{projectId}` - Debug reservation
+
+### Stock Operations
+- `POST /api/consume` - Consume (decrement) stock for a SKU during mission execution
+- `POST /api/produce` - Produce (increment) stock for finished goods
+
+### Webhooks & Notifications
+- `POST /orion/notifications` - Orion subscription webhook for Project entities
+
+### Administration
+- `POST /admin/recompute/{projectId}` - Force recomputation of reservation/shortage
+- `GET /admin/inventory/sync` - Trigger full inventory synchronization
+- `GET /admin/inventory/status` - Get inventory sync worker status
+- `POST /admin/inventory/sync/{sku}` - Sync specific product inventory
+
+### Debug (Non-Production)
+- `GET /debug/reservation/{projectId}` - Debug reservation entity
+- `GET /debug/shortage/{projectId}` - Debug shortage entity
+- `GET /debug/inventory/{sku}` - Debug inventory data
+
+### Stock Operations API Usage
+
+The adapter provides bidirectional stock integration with Odoo for mission execution.
+
+**Consume stock (called by mission controller during component picking):**
+```bash
+curl -X POST http://localhost:8080/api/consume \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "urn:ngsi-ld:Project:P123",
+    "sku": "PCB-CTRL-REV21",
+    "quantity": 1
+  }'
+```
+
+**Produce finished goods (called when mission completes):**
+```bash
+curl -X POST http://localhost:8080/api/produce \
+  -H "Content-Type: application/json" \
+  -d '{
+    "project_id": "urn:ngsi-ld:Project:P123",
+    "sku": "CTRL-PANEL-A1",
+    "quantity": 1
+  }'
+```
+
+Both endpoints:
+- Update Odoo `stock.quant` records directly for the configured location (default: WH/Stock)
+- Trigger background inventory sync to update NGSI-LD InventoryItem entities
+- Return operation details including quant_id and old/new quantities
+- Support project traceability via project_id parameter
 
 ## 🐳 Docker Profiles
 

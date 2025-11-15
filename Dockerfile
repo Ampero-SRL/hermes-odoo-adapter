@@ -58,6 +58,9 @@ COPY --chown=appuser:appgroup scripts/ ./scripts/
 # Create necessary directories
 RUN mkdir -p /app/logs && chown appuser:appgroup /app/logs
 
+# Make scripts executable
+RUN chmod +x /app/scripts/*.sh || true
+
 # Switch to non-root user
 USER appuser
 
@@ -68,5 +71,6 @@ EXPOSE 8080 9090
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD curl -f http://localhost:8080/healthz || exit 1
 
-# Default command
+# Set entrypoint and default command
+ENTRYPOINT ["/app/scripts/docker-entrypoint.sh"]
 CMD ["python", "-m", "hermes_odoo_adapter.main"]

@@ -129,12 +129,31 @@ class InventorySyncWorker:
     async def _get_all_products_with_stock(self) -> List[Dict[str, Any]]:
         """Get all products that have stock quantities"""
         try:
-            # Get all stock quants from internal locations (keep zero-qty rows)
+            allowed_skus = {sku.strip() for sku in settings.inventory_allowed_skus if sku.strip()}
+
+            # Build location filter based on configured stock_location_names
+            if settings.stock_location_names:
+                # Filter by specific location names (e.g., ["Stock", "WH/Stock"])
+                # Use OR logic to match any of the configured locations
+                location_domain = []
+                if len(settings.stock_location_names) > 1:
+                    # Add OR operator prefix for multiple locations
+                    location_domain.append("|" * (len(settings.stock_location_names) - 1))
+
+                for loc_name in settings.stock_location_names:
+                    location_domain.append(("location_id.complete_name", "=", loc_name))
+
+                logger.debug("Filtering stock by configured locations",
+                           locations=settings.stock_location_names)
+            else:
+                # Fall back to all internal locations if not configured
+                location_domain = [("location_id.usage", "=", "internal")]
+                logger.debug("Using all internal locations (no stock_location_names configured)")
+
+            # Get stock quants from configured locations (keep zero-qty rows)
             stock_quants = await self.odoo_client.search_read(
                 "stock.quant",
-                domain=[
-                    ("location_id.usage", "=", "internal"),
-                ],
+                domain=location_domain,
                 fields=["product_id", "location_id", "quantity", "reserved_quantity"],
                 limit=0
             )
@@ -169,7 +188,10 @@ class InventorySyncWorker:
                 sku = product.get(settings.sku_field)
                 if not sku:
                     continue
-                
+                sku = sku.strip()
+                if allowed_skus and sku not in allowed_skus:
+                    continue
+
                 stock_info = stock_by_product.get(product_id, {"total": 0.0, "reserved": 0.0})
                 total_qty = stock_info["total"]
                 reserved_qty = stock_info["reserved"]

@@ -329,6 +329,142 @@ class OdooClient:
             fields=["id", "product_id", "location_id", "quantity", "reserved_quantity"]
         )
     
+    async def consume_stock(self, sku: str, quantity: int, project_id: str, location_id: int) -> Dict[str, Any]:
+        """
+        Consume (decrement) stock for a given SKU
+
+        Args:
+            sku: Product SKU (default_code)
+            quantity: Quantity to consume
+            project_id: NGSI-LD Project URN for traceability
+            location_id: Odoo location ID where stock is consumed from
+
+        Returns:
+            Dict with operation details (quant_id, product_id, old_qty, new_qty)
+        """
+        logger.info("Consuming stock", sku=sku, quantity=quantity, project_id=project_id, location_id=location_id)
+
+        # Find product by SKU
+        products = await self.search_read(
+            "product.product",
+            domain=[("default_code", "=", sku)],
+            fields=["id", "name", "uom_id"]
+        )
+
+        if not products:
+            raise OdooAPIError(f"SKU {sku} not found in Odoo")
+
+        product = products[0]
+        product_id = product["id"]
+
+        # Find existing quant at the location
+        quants = await self.search_read(
+            "stock.quant",
+            domain=[("product_id", "=", product_id), ("location_id", "=", location_id)],
+            fields=["id", "quantity", "reserved_quantity"],
+            limit=1
+        )
+
+        if quants:
+            quant = quants[0]
+            quant_id = quant["id"]
+            old_qty = quant["quantity"]
+            new_quantity = max(0, old_qty - quantity)
+
+            # Update the quant quantity
+            await self.write("stock.quant", quant_id, {"quantity": new_quantity})
+
+            logger.info("Stock consumed successfully",
+                       sku=sku, quant_id=quant_id, old_qty=old_qty, new_qty=new_quantity)
+
+            return {
+                "quant_id": quant_id,
+                "product_id": product_id,
+                "old_qty": old_qty,
+                "new_qty": new_quantity
+            }
+        else:
+            # No stock at location - this is acceptable for MVP (just log it)
+            logger.warning("No stock found at location for consumption",
+                          sku=sku, location_id=location_id)
+            return {
+                "product_id": product_id,
+                "message": "No stock found at location",
+                "consumed": 0
+            }
+
+    async def produce_stock(self, sku: str, quantity: int, project_id: str, location_id: int) -> Dict[str, Any]:
+        """
+        Produce (increment) stock for a given SKU
+
+        Args:
+            sku: Product SKU (default_code)
+            quantity: Quantity to produce
+            project_id: NGSI-LD Project URN for traceability
+            location_id: Odoo location ID where stock is produced to
+
+        Returns:
+            Dict with operation details (quant_id, product_id, old_qty, new_qty)
+        """
+        logger.info("Producing stock", sku=sku, quantity=quantity, project_id=project_id, location_id=location_id)
+
+        # Find product by SKU
+        products = await self.search_read(
+            "product.product",
+            domain=[("default_code", "=", sku)],
+            fields=["id", "name", "uom_id"]
+        )
+
+        if not products:
+            raise OdooAPIError(f"SKU {sku} not found in Odoo")
+
+        product = products[0]
+        product_id = product["id"]
+
+        # Find existing quant at the location
+        quants = await self.search_read(
+            "stock.quant",
+            domain=[("product_id", "=", product_id), ("location_id", "=", location_id)],
+            fields=["id", "quantity", "reserved_quantity"],
+            limit=1
+        )
+
+        if quants:
+            # Update existing quant
+            quant = quants[0]
+            quant_id = quant["id"]
+            old_qty = quant["quantity"]
+            new_quantity = old_qty + quantity
+
+            await self.write("stock.quant", quant_id, {"quantity": new_quantity})
+
+            logger.info("Stock produced successfully",
+                       sku=sku, quant_id=quant_id, old_qty=old_qty, new_qty=new_quantity)
+
+            return {
+                "quant_id": quant_id,
+                "product_id": product_id,
+                "old_qty": old_qty,
+                "new_qty": new_quantity
+            }
+        else:
+            # Create new quant if it doesn't exist
+            quant_id = await self.create("stock.quant", {
+                "product_id": product_id,
+                "location_id": location_id,
+                "quantity": quantity
+            })
+
+            logger.info("New stock quant created",
+                       sku=sku, quant_id=quant_id, quantity=quantity)
+
+            return {
+                "quant_id": quant_id,
+                "product_id": product_id,
+                "old_qty": 0,
+                "new_qty": quantity
+            }
+
     async def health_check(self) -> bool:
         """Check if Odoo is accessible"""
         try:

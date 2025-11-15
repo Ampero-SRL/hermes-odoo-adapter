@@ -33,22 +33,12 @@ class ProjectSyncWorker:
     async def setup_subscription(self) -> bool:
         """Setup Orion-LD subscription for Project entities"""
         subscription_config = {
-            "@context": [
-                "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
-                CUSTOM_CONTEXT,
-            ],
-            "description": "HERMES Project status change subscription",
-            "subject": {
-                "entities": [{"type": "Project"}],
-                "condition": {
-                    "attrs": ["status"],
-                    "expression": {
-                        "q": "status==requested"
-                    }
-                }
-            },
+            "type": "Subscription",
+            "@context": ["https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"],
+            "description": "HERMES Project entity subscription",
+            "entities": [{"type": "Project"}],
             "notification": {
-                "attributes": ["code", "station", "status"],
+                "attributes": ["code", "station", "status", "productId", "quantity"],
                 "format": "normalized",
                 "endpoint": {
                     "uri": f"{settings.adapter_public_url}/orion/notifications",
@@ -89,19 +79,25 @@ class ProjectSyncWorker:
         project_code = self._extract_property_value(entity_data, "code")
         station = self._extract_property_value(entity_data, "station")
         status = self._extract_property_value(entity_data, "status")
-        
+        quantity = self._extract_property_value(entity_data, "quantity")
+
+        # Default quantity to 1 if not provided
+        if quantity is None:
+            quantity = 1
+        quantity = int(quantity)
+
         with LoggingContext(project_id=project_id):
-            logger.info("Processing project notification", 
-                       project_code=project_code, station=station, status=status)
-            
+            logger.info("Processing project notification",
+                       project_code=project_code, station=station, status=status, quantity=quantity)
+
             try:
                 # Check idempotency
                 if not idempotency_helper.should_process_project(project_id, entity_data):
                     logger.info("Project already processed, skipping", project_id=project_id)
                     return
-                
+
                 if status == "requested":
-                    result = await self._process_project_request(project_id, project_code, station)
+                    result = await self._process_project_request(project_id, project_code, station, quantity)
                     idempotency_helper.mark_project_processed(project_id, entity_data, result)
                 else:
                     logger.debug("Project status not 'requested', ignoring", status=status)
@@ -110,9 +106,9 @@ class ProjectSyncWorker:
                 logger.error("Error processing project", project_id=project_id, error=str(e))
                 raise
     
-    async def _process_project_request(self, project_id: str, project_code: str, station: Optional[str]) -> Dict[str, Any]:
+    async def _process_project_request(self, project_id: str, project_code: str, station: Optional[str], quantity: int = 1) -> Dict[str, Any]:
         """Process a project request - check BOM and stock"""
-        logger.info("Processing project request", project_id=project_id, project_code=project_code)
+        logger.info("Processing project request", project_id=project_id, project_code=project_code, quantity=quantity)
         
         try:
             # Step 1: Find product by project code
@@ -144,10 +140,10 @@ class ProjectSyncWorker:
                 return {"error": error_msg}
             
             logger.info("Retrieved BOM lines", line_count=len(bom_lines))
-            
+
             # Step 4: Check stock availability
-            result = await self._check_stock_availability(project_id, bom_lines)
-            
+            result = await self._check_stock_availability(project_id, bom_lines, quantity)
+
             return result
             
         except OdooError as e:
@@ -192,9 +188,9 @@ class ProjectSyncWorker:
             logger.warning("Failed to load project mapping", file=settings.project_mapping_file, error=str(e))
             return None
     
-    async def _check_stock_availability(self, project_id: str, bom_lines: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def _check_stock_availability(self, project_id: str, bom_lines: List[Dict[str, Any]], quantity: int = 1) -> Dict[str, Any]:
         """Check stock availability for BOM lines and create Reservation or Shortage"""
-        logger.info("Checking stock availability", project_id=project_id, bom_line_count=len(bom_lines))
+        logger.info("Checking stock availability", project_id=project_id, bom_line_count=len(bom_lines), project_quantity=quantity)
         
         # Get all product IDs from BOM lines
         product_ids = [line["product_id"][0] for line in bom_lines]
@@ -206,13 +202,13 @@ class ProjectSyncWorker:
         stock_by_product = {}
         for stock_item in stock_data:
             product_id = stock_item["product_id"][0]
-            quantity = stock_item["quantity"]
+            stock_qty = stock_item["quantity"]  # Renamed to avoid shadowing quantity parameter
             reserved = stock_item.get("reserved_quantity", 0)
-            
+
             if product_id not in stock_by_product:
                 stock_by_product[product_id] = {"total": 0, "reserved": 0}
-            
-            stock_by_product[product_id]["total"] += quantity
+
+            stock_by_product[product_id]["total"] += stock_qty
             stock_by_product[product_id]["reserved"] += reserved
         
         # Check each BOM line
@@ -222,7 +218,8 @@ class ProjectSyncWorker:
         for bom_line in bom_lines:
             product_id = bom_line["product_id"][0]
             product_name = bom_line["product_id"][1]
-            required_qty = bom_line["product_qty"]
+            bom_qty = bom_line["product_qty"]
+            required_qty = bom_qty * quantity  # Multiply by project quantity
             
             # Get product SKU
             product_data = await self.odoo_client.read("product.product", [product_id], [settings.sku_field])
@@ -263,20 +260,26 @@ class ProjectSyncWorker:
             # Create shortage
             shortage = Shortage.create(project_id, shortage_lines)
             await self.orion_client.upsert_entity(shortage)
-            
+
+            # Update Project status to shortage
+            await self._update_project_status(project_id, "shortage")
+
             metrics.record_shortage_created()
             logger.info("Created shortage", project_id=project_id, shortage_line_count=len(shortage_lines))
-            
+
             return {"type": "shortage", "lines": len(shortage_lines)}
             
         elif reservation_lines:
             # Create reservation
             reservation = Reservation.create(project_id, reservation_lines)
             await self.orion_client.upsert_entity(reservation)
-            
+
+            # Update Project status to processing
+            await self._update_project_status(project_id, "processing")
+
             metrics.record_reservation_created()
             logger.info("Created reservation", project_id=project_id, reservation_line_count=len(reservation_lines))
-            
+
             return {"type": "reservation", "lines": len(reservation_lines)}
             
         else:
@@ -289,10 +292,33 @@ class ProjectSyncWorker:
             inventory_item = InventoryItem.create(sku, available, reserved)
             await self.orion_client.upsert_entity(inventory_item)
             logger.debug("Updated inventory item", sku=sku, available=available, reserved=reserved)
-            
+
         except Exception as e:
             logger.warning("Failed to update inventory item", sku=sku, error=str(e))
-    
+
+    async def _update_project_status(self, project_id: str, status: str) -> None:
+        """Update Project entity status"""
+        try:
+            # Ensure project_id is a full URI
+            if not project_id.startswith("urn:ngsi-ld:"):
+                project_uri = f"urn:ngsi-ld:Project:{project_id}"
+            else:
+                project_uri = project_id
+
+            update_data = {
+                "status": {
+                    "type": "Property",
+                    "value": status
+                },
+                "@context": ["https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld"]
+            }
+
+            await self.orion_client.update_entity(project_uri, update_data, "Project")
+            logger.info("Updated project status", project_id=project_id, status=status)
+
+        except Exception as e:
+            logger.warning("Failed to update project status", project_id=project_id, status=status, error=str(e))
+
     def _extract_property_value(self, entity_data: Dict[str, Any], property_name: str) -> Optional[str]:
         """Extract value from NGSI-LD property"""
         prop = entity_data.get(property_name)
