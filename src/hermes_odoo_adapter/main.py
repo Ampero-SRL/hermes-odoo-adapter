@@ -15,7 +15,7 @@ import uvicorn
 from .settings import settings
 from .utils.logging import setup_logging, get_logger, LoggingContext
 from .utils.metrics import metrics
-from .utils.idempotency import generate_correlation_id
+from .utils.idempotency import generate_correlation_id, idempotency_helper
 from .odoo_client import OdooClient, OdooError
 from .orion_client import OrionClient, OrionError
 from .workers.project_sync import ProjectSyncWorker
@@ -436,17 +436,53 @@ async def get_inventory_sync_status():
 async def sync_product_inventory(sku: str, background_tasks: BackgroundTasks):
     """Sync inventory for a specific product by SKU"""
     logger.info("Manual product inventory sync requested", sku=sku)
-    
+
     if not inventory_worker:
         raise HTTPException(status_code=503, detail="Inventory worker not available")
-    
+
     try:
         background_tasks.add_task(inventory_worker.sync_product_inventory, sku)
         return {"message": f"Inventory synchronization queued for SKU {sku}"}
-        
+
     except Exception as e:
         logger.error("Error triggering product inventory sync", sku=sku, error=str(e))
         raise HTTPException(status_code=500, detail=f"Product sync error: {str(e)}")
+
+
+@app.delete("/admin/idempotency/{project_id}", tags=["admin"])
+async def clear_project_idempotency(project_id: str):
+    """
+    Clear idempotency cache for a specific project.
+
+    Use this when you want to reprocess a project that was already processed.
+    Call this BEFORE creating a new project with the same ID.
+    """
+    logger.info("Clearing idempotency cache for project", project_id=project_id)
+
+    cleared = idempotency_helper.clear_project(project_id)
+
+    return {
+        "status": "success" if cleared else "not_found",
+        "message": f"Idempotency cache {'cleared' if cleared else 'not found'} for project {project_id}",
+        "project_id": project_id
+    }
+
+
+@app.delete("/admin/idempotency", tags=["admin"])
+async def clear_all_idempotency():
+    """
+    Clear entire idempotency cache.
+
+    Use this to reset all project processing state.
+    """
+    logger.info("Clearing all idempotency cache")
+
+    idempotency_helper.clear_cache()
+
+    return {
+        "status": "success",
+        "message": "All idempotency cache cleared"
+    }
 
 
 # Debug endpoints (only in non-production)
