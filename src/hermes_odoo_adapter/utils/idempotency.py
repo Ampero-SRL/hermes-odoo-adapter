@@ -117,6 +117,14 @@ class IdempotencyHelper:
     def clear_cache(self) -> None:
         """Clear the idempotency cache"""
         self._cache.clear()
+
+    def clear_project(self, project_id: str) -> bool:
+        """Clear a specific project from the idempotency cache"""
+        project_key = generate_project_key(project_id)
+        if project_key in self._cache:
+            del self._cache[project_key]
+            return True
+        return False
     
     def generate_project_reservation_key(self, project_id: str, bom_lines: List[Dict[str, Any]]) -> str:
         """Generate idempotency key for project reservation"""
