@@ -120,6 +120,48 @@ class Settings(BaseSettings):
         le=3600
     )
     
+    # Warehouse / ASRS Configuration
+    warehouse_backend: str = Field(
+        default="null",
+        description="Warehouse backend: 'hanel_soap' or 'null'"
+    )
+    asrs_soap_url: Optional[str] = Field(
+        default=None,
+        description="Hanel SOAP WSDL URL (e.g. http://172.16.x.x/ws/com?wsdl)"
+    )
+    asrs_soap_timeout: int = Field(
+        default=10,
+        description="SOAP request timeout in seconds",
+        ge=1,
+        le=60,
+    )
+    asrs_job_poll_interval: float = Field(
+        default=2.0,
+        description="Warehouse job status polling interval in seconds",
+        ge=0.5,
+        le=30.0,
+    )
+    warehouse_sync_enabled: bool = Field(
+        default=False,
+        description="Enable periodic warehouse inventory sync (only for non-null backends)"
+    )
+    warehouse_sync_interval_minutes: int = Field(
+        default=1,
+        description="Warehouse sync interval in minutes",
+        ge=1,
+        le=60,
+    )
+
+    # ROS2 Configuration
+    ros2_enabled: bool = Field(
+        default=True,
+        description="Enable ROS2 node (Vulcanexus/Fast-DDS services and topics)"
+    )
+    ros2_node_name: str = Field(
+        default="hermes_adapter",
+        description="ROS2 node name"
+    )
+
     # Security Configuration
     api_key_header: str = Field(default="X-API-Key", description="API key header name")
     api_key: Optional[str] = Field(default=None, description="API key for authentication")

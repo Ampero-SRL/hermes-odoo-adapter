@@ -1,7 +1,14 @@
 """
-HERMES Odoo Adapter - Main FastAPI Application
+HERMES Odoo Adapter v2.0 - Hybrid ROS2 + FastAPI Application
+
+Speaks four protocols:
+  - ROS2 DDS (Vulcanexus/Fast-DDS) — services for Mission Controller
+  - JSON-RPC — Odoo ERP stock and BOM operations
+  - NGSI-LD over HTTP — FIWARE Orion-LD context broker
+  - SOAP 1.1 — Hanel vertical warehouse (via pluggable WarehouseClient)
 """
 import asyncio
+import threading
 from pathlib import Path
 from contextlib import asynccontextmanager
 from typing import Any, Dict, List, Optional
@@ -18,8 +25,10 @@ from .utils.metrics import metrics
 from .utils.idempotency import generate_correlation_id, idempotency_helper
 from .odoo_client import OdooClient, OdooError
 from .orion_client import OrionClient, OrionError
+from .warehouse import create_warehouse_client, WarehouseClient
 from .workers.project_sync import ProjectSyncWorker
 from .workers.inventory_sync import InventorySyncWorker
+from .workers.warehouse_sync import WarehouseSyncWorker
 
 # Setup logging first
 setup_logging()
@@ -28,69 +37,154 @@ logger = get_logger(__name__)
 # Global clients and workers
 odoo_client: Optional[OdooClient] = None
 orion_client: Optional[OrionClient] = None
+warehouse_client: Optional[WarehouseClient] = None
 project_worker: Optional[ProjectSyncWorker] = None
 inventory_worker: Optional[InventorySyncWorker] = None
+warehouse_worker: Optional[WarehouseSyncWorker] = None
+
+# ROS2 globals
+_ros2_node: Optional[Any] = None  # HermesAdapterNode
+_ros2_thread: Optional[threading.Thread] = None
+_ros2_executor: Optional[Any] = None  # rclpy.executors.MultiThreadedExecutor
 
 CONTEXT_FILE = Path(__file__).resolve().parents[2] / "contracts/context/context.jsonld"
+
+
+def _start_ros2_spin(node: Any) -> None:
+    """Spin the rclpy executor in a daemon thread."""
+    import rclpy
+    from rclpy.executors import MultiThreadedExecutor
+
+    global _ros2_executor
+    _ros2_executor = MultiThreadedExecutor()
+    _ros2_executor.add_node(node)
+    try:
+        _ros2_executor.spin()
+    except Exception:
+        pass  # Shutting down
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager"""
-    global odoo_client, orion_client, project_worker, inventory_worker
-    
-    logger.info("Starting HERMES Odoo Adapter", version="0.1.0")
-    
+    global odoo_client, orion_client, warehouse_client
+    global project_worker, inventory_worker, warehouse_worker
+    global _ros2_node, _ros2_thread
+
+    logger.info("Starting HERMES Odoo Adapter", version="2.0.0")
+
     try:
-        # Initialize clients
+        # 1. Initialize protocol clients
         odoo_client = OdooClient()
         orion_client = OrionClient()
-        
+        warehouse_client = create_warehouse_client(settings)
+
         # Wait for Orion to be reachable before proceeding
         if not await orion_client.wait_until_ready():
             raise RuntimeError("Orion-LD is not ready")
-        
+
         await odoo_client.connect()
         await orion_client.connect()
-        
-        # Initialize workers
+        await warehouse_client.connect()
+
+        # 2. Initialize workers
         project_worker = ProjectSyncWorker(odoo_client, orion_client)
         inventory_worker = InventorySyncWorker(odoo_client, orion_client)
-        
+        warehouse_worker = WarehouseSyncWorker(
+            odoo_client, orion_client, warehouse_client
+        )
+
         # Setup Orion subscription
         await project_worker.setup_subscription()
-        
+
         # Start background tasks
         if settings.inventory_sync_enabled:
             asyncio.create_task(inventory_worker.start())
-        
-        logger.info("HERMES Odoo Adapter started successfully")
-        
+
+        if settings.warehouse_sync_enabled and settings.warehouse_backend != "null":
+            asyncio.create_task(warehouse_worker.start())
+
+        # 3. Initialize ROS2 node (Vulcanexus / Fast-DDS)
+        if settings.ros2_enabled:
+            try:
+                import rclpy
+                from .ros2_node import HermesAdapterNode
+
+                rclpy.init()
+                loop = asyncio.get_running_loop()
+                _ros2_node = HermesAdapterNode(
+                    odoo_client=odoo_client,
+                    orion_client=orion_client,
+                    warehouse_client=warehouse_client,
+                    event_loop=loop,
+                    node_name=settings.ros2_node_name,
+                    stock_location_id=settings.stock_location_id,
+                )
+                _ros2_thread = threading.Thread(
+                    target=_start_ros2_spin,
+                    args=(_ros2_node,),
+                    daemon=True,
+                    name="rclpy-spin",
+                )
+                _ros2_thread.start()
+                logger.info(
+                    "ROS2 node started",
+                    node_name=settings.ros2_node_name,
+                )
+            except ImportError:
+                logger.warning(
+                    "rclpy not available — ROS2 node disabled. "
+                    "Install Vulcanexus/ROS2 Humble to enable DDS services."
+                )
+            except Exception as e:
+                logger.error("Failed to start ROS2 node", error=str(e))
+
+        logger.info("HERMES Odoo Adapter v2.0 started successfully")
+
         yield
-        
+
     except Exception as e:
         logger.error("Failed to start application", error=str(e))
         raise
     finally:
         # Cleanup
         logger.info("Shutting down HERMES Odoo Adapter")
-        
+
+        # Stop ROS2
+        if _ros2_node is not None:
+            try:
+                import rclpy
+
+                if _ros2_executor is not None:
+                    _ros2_executor.shutdown()
+                _ros2_node.destroy_node()
+                rclpy.shutdown()
+            except Exception:
+                pass
+
+        if warehouse_worker:
+            await warehouse_worker.stop()
+
         if inventory_worker:
             await inventory_worker.stop()
-        
+
+        if warehouse_client:
+            await warehouse_client.close()
+
         if odoo_client:
             await odoo_client.close()
-        
+
         if orion_client:
             await orion_client.close()
-        
+
         logger.info("HERMES Odoo Adapter stopped")
 
 
 # Create FastAPI app
 app = FastAPI(
     title="HERMES Odoo Adapter",
-    description="FIWARE NGSI-LD adapter for Odoo ERP integration",
-    version="0.1.0",
+    description="Hybrid ROS2 + FastAPI adapter for Odoo ERP, FIWARE, and warehouse integration",
+    version="2.0.0",
     lifespan=lifespan,
     docs_url="/docs" if not settings.testing else None,
     redoc_url="/redoc" if not settings.testing else None,
@@ -185,7 +279,7 @@ async def health_check():
     return HealthResponse(
         status="healthy",
         service="hermes-odoo-adapter",
-        version="0.1.0"
+        version="2.0.0"
     )
 
 
@@ -219,6 +313,31 @@ async def readiness_check():
         checks["orion"] = False
         details["orion"] = "Client not initialized"
     
+    # Check warehouse connectivity
+    if warehouse_client:
+        try:
+            checks["warehouse"] = await warehouse_client.health_check()
+            details["warehouse"] = (
+                f"Connected ({settings.warehouse_backend})"
+                if checks["warehouse"]
+                else "Connection failed"
+            )
+        except Exception as e:
+            checks["warehouse"] = False
+            details["warehouse"] = f"Error: {str(e)}"
+    else:
+        checks["warehouse"] = False
+        details["warehouse"] = "Client not initialized"
+
+    # Check ROS2 node
+    if _ros2_node is not None:
+        checks["ros2"] = True
+        details["ros2"] = f"Node '{settings.ros2_node_name}' running"
+    elif settings.ros2_enabled:
+        checks["ros2"] = False
+        details["ros2"] = "Node not started"
+    # If ros2_enabled is False, skip the check entirely
+
     # Overall status
     all_healthy = all(checks.values())
     status = "ready" if all_healthy else "not_ready"

@@ -1,14 +1,14 @@
 [tool.poetry]
 name = "hermes-odoo-adapter"
-version = "0.1.0"
-description = "FIWARE NGSI-LD adapter for Odoo ERP integration in HERMES manufacturing project"
+version = "2.0.0"
+description = "Hybrid ROS2 + FastAPI adapter for Odoo ERP, FIWARE, and warehouse integration in HERMES"
 authors = ["Francesco Solinas <francesco@yourcompany.com>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/yourorg/hermes_odoo_adapter"
 repository = "https://github.com/yourorg/hermes_odoo_adapter"
 documentation = "https://github.com/yourorg/hermes_odoo_adapter/docs"
-keywords = ["fiware", "ngsi-ld", "odoo", "manufacturing", "erp"]
+keywords = ["fiware", "ngsi-ld", "odoo", "manufacturing", "erp", "ros2", "soap", "warehouse"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
@@ -23,7 +23,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 fastapi = "^0.104.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
 httpx = "^0.25.2"
@@ -35,6 +35,8 @@ prometheus-client = "^0.19.0"
 asyncio-throttle = "^1.0.2"
 tenacity = "^8.2.3"
 jsonschema = "^4.20.0"
+zeep = "^4.2"
+lxml = "^5.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

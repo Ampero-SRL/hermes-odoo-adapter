@@ -1,0 +1,348 @@
+"""
+HERMES Adapter ROS2 Node — hybrid DDS face for the Odoo Adapter.
+
+Runs alongside FastAPI in the same process. Exposes ROS2 services for
+warehouse operations and stock management, and subscribes to mission state
+to relay updates to Orion-LD (absorbing the ROS-FIWARE Bridge).
+
+DDS stack: Vulcanexus Humble (eProsima Fast-DDS).
+"""
+from __future__ import annotations
+
+import asyncio
+import json
+import logging
+import uuid
+from typing import Any, Optional
+
+import rclpy
+from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from std_msgs.msg import String
+
+# hermes_msgs service/message types (built from ros2_ws/src/hermes_msgs)
+from hermes_msgs.srv import (
+    WarehousePick,
+    WarehousePickStatus,
+    WarehousePickCancel,
+    ConsumeStock,
+    ProduceStock,
+    PushArticle,
+)
+from hermes_msgs.msg import InventoryUpdate
+from builtin_interfaces.msg import Time
+
+from .warehouse.base import WarehouseClient
+from .odoo_client import OdooClient
+from .orion_client import OrionClient
+
+logger = logging.getLogger(__name__)
+
+
+class HermesAdapterNode(Node):
+    """
+    ROS2 node that bridges DDS ↔ internal adapter clients.
+
+    All service callbacks delegate to the *async* client methods. Because
+    rclpy service callbacks run on the executor thread we use
+    ``asyncio.run_coroutine_threadsafe`` to schedule work on the FastAPI
+    event loop.
+    """
+
+    def __init__(
+        self,
+        odoo_client: OdooClient,
+        orion_client: OrionClient,
+        warehouse_client: WarehouseClient,
+        event_loop: asyncio.AbstractEventLoop,
+        *,
+        node_name: str = "hermes_adapter",
+        stock_location_id: int = 8,
+        orion_context_url: str = "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    ) -> None:
+        super().__init__(node_name)
+        self._odoo = odoo_client
+        self._orion = orion_client
+        self._warehouse = warehouse_client
+        self._loop = event_loop
+        self._stock_location_id = stock_location_id
+        self._orion_context_url = orion_context_url
+
+        # -- Warehouse services -----------------------------------------------
+        self.create_service(
+            WarehousePick,
+            "/hermes/warehouse/pick",
+            self._handle_warehouse_pick,
+        )
+        self.create_service(
+            WarehousePickStatus,
+            "/hermes/warehouse/status",
+            self._handle_pick_status,
+        )
+        self.create_service(
+            WarehousePickCancel,
+            "/hermes/warehouse/cancel",
+            self._handle_pick_cancel,
+        )
+
+        # -- Stock services ----------------------------------------------------
+        self.create_service(
+            ConsumeStock,
+            "/hermes/stock/consume",
+            self._handle_consume_stock,
+        )
+        self.create_service(
+            ProduceStock,
+            "/hermes/stock/produce",
+            self._handle_produce_stock,
+        )
+
+        # -- Article management ------------------------------------------------
+        self.create_service(
+            PushArticle,
+            "/hermes/articles/push",
+            self._handle_push_article,
+        )
+
+        # -- Inventory update publisher ----------------------------------------
+        self._inventory_pub = self.create_publisher(
+            InventoryUpdate, "/hermes/inventory_updates", 10
+        )
+
+        # -- Mission state subscriber (absorbs ROS-FIWARE Bridge) -------------
+        self.create_subscription(
+            String,
+            "/hermes/mission_state",
+            self._handle_mission_state,
+            10,
+        )
+
+        self.get_logger().info(
+            "HermesAdapterNode ready — services: warehouse/pick, "
+            "warehouse/status, warehouse/cancel, stock/consume, "
+            "stock/produce, articles/push"
+        )
+
+    # ======================================================================
+    # Helper: run async coroutine from the rclpy executor thread
+    # ======================================================================
+
+    def _run_async(self, coro: Any) -> Any:
+        """Schedule *coro* on the FastAPI event loop and wait for the result."""
+        future = asyncio.run_coroutine_threadsafe(coro, self._loop)
+        return future.result(timeout=30)
+
+    # ======================================================================
+    # Warehouse service handlers
+    # ======================================================================
+
+    def _handle_warehouse_pick(
+        self,
+        request: WarehousePick.Request,
+        response: WarehousePick.Response,
+    ) -> WarehousePick.Response:
+        job_id = request.job_id or f"J-{uuid.uuid4().hex[:8]}"
+        self.get_logger().info(
+            "WarehousePick: job=%s sku=%s qty=%d", job_id, request.sku, request.quantity
+        )
+        try:
+            result = self._run_async(
+                self._warehouse.send_pick_order(job_id, request.sku, request.quantity)
+            )
+            response.success = result.success
+            response.job_id = result.job_id
+            response.error = result.error
+        except Exception as exc:
+            self.get_logger().error("WarehousePick failed: %s", exc)
+            response.success = False
+            response.job_id = job_id
+            response.error = str(exc)
+        return response
+
+    def _handle_pick_status(
+        self,
+        request: WarehousePickStatus.Request,
+        response: WarehousePickStatus.Response,
+    ) -> WarehousePickStatus.Response:
+        try:
+            status = self._run_async(
+                self._warehouse.get_pick_status(request.job_id)
+            )
+            response.status = status.status
+            response.slot = status.slot
+            response.tray_ready = status.tray_ready
+        except Exception as exc:
+            self.get_logger().error("WarehousePickStatus failed: %s", exc)
+            response.status = "failed"
+            response.slot = ""
+            response.tray_ready = False
+        return response
+
+    def _handle_pick_cancel(
+        self,
+        request: WarehousePickCancel.Request,
+        response: WarehousePickCancel.Response,
+    ) -> WarehousePickCancel.Response:
+        try:
+            response.success = self._run_async(
+                self._warehouse.cancel_pick(request.job_id)
+            )
+        except Exception as exc:
+            self.get_logger().error("WarehousePickCancel failed: %s", exc)
+            response.success = False
+        return response
+
+    # ======================================================================
+    # Stock service handlers
+    # ======================================================================
+
+    def _handle_consume_stock(
+        self,
+        request: ConsumeStock.Request,
+        response: ConsumeStock.Response,
+    ) -> ConsumeStock.Response:
+        self.get_logger().info(
+            "ConsumeStock: project=%s sku=%s qty=%d",
+            request.project_id, request.sku, request.quantity,
+        )
+        try:
+            result = self._run_async(
+                self._odoo.consume_stock(
+                    sku=request.sku,
+                    quantity=request.quantity,
+                    project_id=request.project_id,
+                    location_id=self._stock_location_id,
+                )
+            )
+            response.success = True
+            response.remaining = float(result.get("remaining_qty", 0.0))
+
+            # Update FIWARE InventoryItem
+            self._run_async(self._sync_inventory_entity(request.sku, response.remaining))
+
+            # Publish ROS2 inventory update
+            self._publish_inventory_update(
+                request.sku, response.remaining, 0.0, "", "mission_consume"
+            )
+        except Exception as exc:
+            self.get_logger().error("ConsumeStock failed: %s", exc)
+            response.success = False
+            response.remaining = 0.0
+        return response
+
+    def _handle_produce_stock(
+        self,
+        request: ProduceStock.Request,
+        response: ProduceStock.Response,
+    ) -> ProduceStock.Response:
+        self.get_logger().info(
+            "ProduceStock: project=%s sku=%s qty=%d",
+            request.project_id, request.sku, request.quantity,
+        )
+        try:
+            self._run_async(
+                self._odoo.produce_stock(
+                    sku=request.sku,
+                    quantity=request.quantity,
+                    project_id=request.project_id,
+                    location_id=self._stock_location_id,
+                )
+            )
+            response.success = True
+
+            # Publish ROS2 inventory update
+            self._publish_inventory_update(
+                request.sku, 0.0, 0.0, "", "mission_produce"
+            )
+        except Exception as exc:
+            self.get_logger().error("ProduceStock failed: %s", exc)
+            response.success = False
+        return response
+
+    # ======================================================================
+    # Article management
+    # ======================================================================
+
+    def _handle_push_article(
+        self,
+        request: PushArticle.Request,
+        response: PushArticle.Response,
+    ) -> PushArticle.Response:
+        self.get_logger().info("PushArticle: sku=%s name=%s", request.sku, request.name)
+        try:
+            response.success = self._run_async(
+                self._warehouse.push_article(request.sku, request.name)
+            )
+        except Exception as exc:
+            self.get_logger().error("PushArticle failed: %s", exc)
+            response.success = False
+        return response
+
+    # ======================================================================
+    # Mission state subscriber (absorbs ROS-FIWARE Bridge)
+    # ======================================================================
+
+    def _handle_mission_state(self, msg: String) -> None:
+        """
+        Relay mission state from DDS topic to Orion-LD.
+
+        Same logic as the former ``ros_fiware_bridge.py``.
+        """
+        try:
+            payload = json.loads(msg.data)
+        except json.JSONDecodeError:
+            self.get_logger().warning("Invalid JSON on /hermes/mission_state: %s", msg.data)
+            return
+
+        mission_id = payload.get("missionId")
+        status = payload.get("status")
+        if not mission_id or not status:
+            self.get_logger().warning("Mission state missing missionId/status: %s", payload)
+            return
+
+        self.get_logger().info("Relaying mission state → Orion: %s → %s", mission_id, status)
+        try:
+            update_attrs = {
+                "status": {"type": "Property", "value": status},
+                "message": {"type": "Property", "value": payload.get("message", "")},
+                "@context": [self._orion_context_url],
+            }
+            self._run_async(
+                self._orion.update_entity(mission_id, update_attrs, "Mission")
+            )
+        except Exception as exc:
+            self.get_logger().error("Failed to relay mission state for %s: %s", mission_id, exc)
+
+    # ======================================================================
+    # Internal helpers
+    # ======================================================================
+
+    async def _sync_inventory_entity(self, sku: str, available: float) -> None:
+        """Update the InventoryItem entity in Orion-LD after a stock change."""
+        entity_id = f"urn:ngsi-ld:InventoryItem:{sku}"
+        entity = {
+            "id": entity_id,
+            "type": "InventoryItem",
+            "available": {"type": "Property", "value": available},
+            "@context": [self._orion_context_url],
+        }
+        await self._orion.upsert_entity(entity)
+
+    def _publish_inventory_update(
+        self,
+        sku: str,
+        available: float,
+        reserved: float,
+        location: str,
+        source: str,
+    ) -> None:
+        """Publish an InventoryUpdate message on the DDS topic."""
+        msg = InventoryUpdate()
+        msg.sku = sku
+        msg.available = available
+        msg.reserved = reserved
+        msg.location = location
+        msg.source = source
+        now = self.get_clock().now().to_msg()
+        msg.stamp = now
+        self._inventory_pub.publish(msg)
