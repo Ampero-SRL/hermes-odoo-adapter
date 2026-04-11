@@ -63,17 +63,15 @@ class Settings(BaseSettings):
 
     inventory_allowed_skus: List[str] = Field(
         default=[
+            # Finished product
             "CTRL-PANEL-A1",
-            "LED-STRIP-24V-1M",
-            "BRACKET-STEEL-001",
-            "PCB-CTRL-REV21",
-            "ENCLOSURE-IP65-300",
-            "PSU-24VDC-5A",
-            "CABLE-ASSY-2M",
-            "SCREW-M4X12-DIN912",
-            "RELAY-SAFETY-24V",
-            "ESTOP-BTN-RED",
-            "TFT-DISPLAY-7IN"
+            # HERMES ASRS components (match class_names.yaml on Jetson)
+            "EL-SAFETY-RELAY",
+            "EL-IFACE-RELAY",
+            "EL-CONTACTOR",
+            "EL-AUX-CONTACT",
+            "EL-FUSE-CARRIER",
+            "EL-TERMINAL-BLK",
         ],
         description="List of SKU codes that should be exposed via the inventory API. Empty list means include every product."
     )

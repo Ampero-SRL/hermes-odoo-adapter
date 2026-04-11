@@ -299,14 +299,29 @@ class OdooClient:
         return products[0] if products else None
     
     async def get_bom_for_product(self, product_id: int) -> Optional[Dict[str, Any]]:
-        """Get BOM for a product"""
+        """Get BOM for a product (checks both product_id and product_tmpl_id)"""
+        # Try exact product variant first
         domain = [("product_id", "=", product_id)]
         boms = await self.search_read(
             "mrp.bom",
             domain,
             fields=["id", "product_id", "product_tmpl_id", "product_qty", "bom_line_ids"]
         )
-        return boms[0] if boms else None
+        if boms:
+            return boms[0]
+        # Fall back to product template (Odoo standard: BOM on template, not variant)
+        products = await self.read("product.product", [product_id], ["product_tmpl_id"])
+        if products:
+            tmpl_id = products[0]["product_tmpl_id"][0]
+            domain = [("product_tmpl_id", "=", tmpl_id)]
+            boms = await self.search_read(
+                "mrp.bom",
+                domain,
+                fields=["id", "product_id", "product_tmpl_id", "product_qty", "bom_line_ids"]
+            )
+            if boms:
+                return boms[0]
+        return None
     
     async def get_bom_lines(self, bom_line_ids: List[int]) -> List[Dict[str, Any]]:
         """Get BOM lines"""
