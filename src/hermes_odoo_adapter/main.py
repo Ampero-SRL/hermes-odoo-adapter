@@ -240,7 +240,10 @@ class HealthResponse(BaseModel):
 class ReadinessResponse(BaseModel):
     status: str
     checks: Dict[str, bool]
-    details: Dict[str, str]
+    # details can contain plain strings (connection status messages) and
+    # nested dicts for backends that expose structured state — e.g.
+    # HOST-COM surfaces warehouse_state as a sub-object.
+    details: Dict[str, Any]
 
 
 class OrionNotification(BaseModel):

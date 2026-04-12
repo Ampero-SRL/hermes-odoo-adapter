@@ -286,16 +286,25 @@ class HermesAdapterNode(Node):
     # ======================================================================
 
     def _publish_diagnostics(self) -> None:
-        """1 Hz tick: publish DiagnosticArray + latched tray_state.
+        """1 Hz tick: publish DiagnosticArray + latched tray_state."""
+        try:
+            self._publish_diagnostics_inner()
+        except Exception as exc:
+            # Never let an exception kill the timer — log and continue.
+            import traceback
+            self.get_logger().error(
+                f"_publish_diagnostics failed: {exc}\n{traceback.format_exc()}"
+            )
 
-        Pulls state from the warehouse client via :meth:`get_state_summary`
+    def _publish_diagnostics_inner(self) -> None:
+        """Pulls state from the warehouse client via :meth:`get_state_summary`
         (default ``{}`` for backends with nothing to expose), plus the
         cached last health-check results for Odoo and Orion.
         """
         try:
             summary: dict = self._warehouse.get_state_summary() or {}
         except Exception as exc:
-            self.get_logger().debug("get_state_summary failed: %s", exc)
+            self.get_logger().debug(f"get_state_summary failed: {exc}")
             summary = {}
 
         # --- Warehouse diagnostic status -----------------------------------
@@ -342,14 +351,13 @@ class HermesAdapterNode(Node):
         # --- Latched tray_state topic (publish only on change) -------------
         tray_value: int = -1 if current_tray is None else int(current_tray)
         if tray_value != self._last_published_tray:
+            prev = self._last_published_tray
             msg = Int16()
             msg.data = tray_value
             self._tray_state_pub.publish(msg)
             self._last_published_tray = tray_value
             self.get_logger().info(
-                "tray_state → %d (prev=%s)",
-                tray_value,
-                "init" if self._last_published_tray is None else "changed",
+                f"tray_state → {tray_value} (prev={prev})"
             )
 
     # ======================================================================
