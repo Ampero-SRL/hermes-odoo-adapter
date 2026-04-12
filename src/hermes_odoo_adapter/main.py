@@ -87,6 +87,21 @@ async def lifespan(app: FastAPI):
         await orion_client.connect()
         await warehouse_client.connect()
 
+        # For HOST-COM: prime the in-memory "tray at pickup" state so that
+        # send_pick_order can short-circuit when the target tray is already
+        # presented (skip re-issuing get_shelf for every component on the
+        # same tray). This is a one-shot call on startup — we assume no
+        # manual Hanel panel operation during a run.
+        if hasattr(warehouse_client, "refresh_pickup_state"):
+            try:
+                current = await warehouse_client.refresh_pickup_state()
+                logger.info(
+                    "Hanel HOST-COM: initial pickup tray = %s",
+                    current if current is not None else "unknown",
+                )
+            except Exception as exc:
+                logger.warning("refresh_pickup_state failed at startup: %s", exc)
+
         # 2. Initialize workers
         project_worker = ProjectSyncWorker(odoo_client, orion_client)
         inventory_worker = InventorySyncWorker(odoo_client, orion_client)
@@ -101,8 +116,23 @@ async def lifespan(app: FastAPI):
         if settings.inventory_sync_enabled:
             asyncio.create_task(inventory_worker.start())
 
-        if settings.warehouse_sync_enabled and settings.warehouse_backend != "null":
+        # warehouse_sync only makes sense for backends that expose article
+        # master data and full inventory reads. HOST-COM is operator-managed
+        # — there is no APD/AMD concept in the protocol, so push_article and
+        # read_all_inventory are documented no-ops. Gate the worker on the
+        # backend's capability instead of just "not null".
+        SYNC_CAPABLE_BACKENDS = {"hanel_soap"}
+        if (
+            settings.warehouse_sync_enabled
+            and settings.warehouse_backend in SYNC_CAPABLE_BACKENDS
+        ):
             asyncio.create_task(warehouse_worker.start())
+        else:
+            logger.info(
+                "warehouse_sync worker not started "
+                "(backend=%s does not support article/inventory sync)",
+                settings.warehouse_backend,
+            )
 
         # 3. Initialize ROS2 node (Vulcanexus / Fast-DDS)
         if settings.ros2_enabled:
@@ -325,6 +355,14 @@ async def readiness_check():
         except Exception as e:
             checks["warehouse"] = False
             details["warehouse"] = f"Error: {str(e)}"
+        # Backends that track session state (HOST-COM) expose it here so
+        # operators can debug drift without shelling into the container.
+        try:
+            summary = warehouse_client.get_state_summary()
+            if summary:
+                details["warehouse_state"] = summary
+        except Exception as exc:
+            logger.debug("warehouse_client.get_state_summary failed: %s", exc)
     else:
         checks["warehouse"] = False
         details["warehouse"] = "Client not initialized"

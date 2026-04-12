@@ -38,12 +38,6 @@ class Settings(BaseSettings):
     )
     
     # Polling Configuration
-    poll_interval_seconds: int = Field(
-        default=60, 
-        description="Inventory sync polling interval",
-        ge=10,
-        le=3600
-    )
     inventory_sync_enabled: bool = Field(
         default=True, 
         description="Enable periodic inventory synchronization"
@@ -97,14 +91,7 @@ class Settings(BaseSettings):
         description="Include reserved stock in availability calculations"
     )
     
-    # Retry and Circuit Breaker Configuration
-    max_retries: int = Field(default=3, description="Maximum retry attempts", ge=0, le=10)
-    retry_delay_seconds: float = Field(
-        default=2.0, 
-        description="Base retry delay in seconds",
-        ge=0.1,
-        le=60.0
-    )
+    # Circuit Breaker Configuration (Odoo client resilience)
     circuit_breaker_failure_threshold: int = Field(
         default=5,
         description="Circuit breaker failure threshold",
@@ -121,7 +108,11 @@ class Settings(BaseSettings):
     # Warehouse / ASRS Configuration
     warehouse_backend: str = Field(
         default="null",
-        description="Warehouse backend: 'hanel_soap' or 'null'"
+        description=(
+            "Warehouse backend: 'hanel_hostcom' (real MP 12N TCP telegrams, "
+            "production), 'hanel_soap' (legacy JWS/HOST-WEB, preserved but "
+            "not used in HERMES), or 'null' (dev/test no-op)."
+        ),
     )
     asrs_soap_url: Optional[str] = Field(
         default=None,
@@ -133,11 +124,49 @@ class Settings(BaseSettings):
         ge=1,
         le=60,
     )
-    asrs_job_poll_interval: float = Field(
-        default=2.0,
-        description="Warehouse job status polling interval in seconds",
-        ge=0.5,
-        le=30.0,
+
+    # Hänel HOST-COM (TCP/2200 telegram protocol) Configuration
+    hanel_hostcom_host: Optional[str] = Field(
+        default=None,
+        description="Hanel MP 12N IP address for HOST-COM TCP protocol"
+    )
+    hanel_hostcom_port: int = Field(
+        default=2200,
+        description="Hanel MP 12N TCP port (HOST-COM is always 2200)",
+        ge=1,
+        le=65535,
+    )
+    hanel_elevator_num: int = Field(
+        default=1,
+        description="Elevator number (xxx in HOST-COM telegrams)",
+        ge=1,
+        le=99,
+    )
+    hanel_pickup_point: int = Field(
+        default=1,
+        description="Pickup point number (y in HOST-COM telegrams)",
+        ge=1,
+        le=8,
+    )
+    hanel_default_tray: int = Field(
+        default=8,
+        description="Default tray (bancale) number for HERMES components",
+        ge=1,
+    )
+    hanel_sku_tray_map: dict = Field(
+        default={
+            # HERMES demo: every component lives on tray 8. Override any
+            # individual SKU here to demonstrate the orchestrator calling
+            # a different tray (e.g. tray 1 for a teach-in demo).
+            "CTRL-PANEL-A1": 8,
+            "EL-SAFETY-RELAY": 8,
+            "EL-IFACE-RELAY": 8,
+            "EL-CONTACTOR": 8,
+            "EL-AUX-CONTACT": 8,
+            "EL-FUSE-CARRIER": 8,
+            "EL-TERMINAL-BLK": 8,
+        },
+        description="SKU → tray_number map for HOST-COM get_shelf calls"
     )
     warehouse_sync_enabled: bool = Field(
         default=False,
@@ -193,6 +222,24 @@ class Settings(BaseSettings):
         """Parse comma-separated location names from environment"""
         if isinstance(v, str):
             return [name.strip() for name in v.split(",") if name.strip()]
+        return v
+
+    @validator("hanel_sku_tray_map", pre=True)
+    def parse_hanel_sku_tray_map(cls, v):
+        """Accept JSON object or ``SKU=N,SKU=N`` strings from env."""
+        if isinstance(v, str):
+            import json
+            s = v.strip()
+            if not s:
+                return {}
+            if s.startswith("{"):
+                return json.loads(s)
+            out: dict[str, int] = {}
+            for pair in s.split(","):
+                if "=" in pair:
+                    k, val = pair.split("=", 1)
+                    out[k.strip()] = int(val.strip())
+            return out
         return v
     
     @validator("log_level")
