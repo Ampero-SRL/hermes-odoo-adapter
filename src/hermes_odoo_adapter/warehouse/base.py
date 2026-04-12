@@ -93,3 +93,9 @@ class WarehouseClient(ABC):
     @abstractmethod
     async def read_all_inventory(self) -> list[ArticleInfo]:
         """Read the complete inventory from the warehouse controller."""
+
+    def get_state_summary(self) -> dict:
+        """Backend-specific runtime state to expose on health endpoints
+        and `/diagnostics`. Override in subclasses that have meaningful
+        session state. Default: empty dict (nothing to expose)."""
+        return {}

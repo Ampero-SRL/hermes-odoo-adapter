@@ -18,16 +18,21 @@ from typing import Any, Optional
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
-from std_msgs.msg import String
+from rclpy.qos import QoSProfile, DurabilityPolicy, HistoryPolicy
+from std_msgs.msg import String, Int16, Header
+from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 
 # hermes_msgs service/message types (built from ros2_ws/src/hermes_msgs)
+# NOTE: PushArticle was removed from the adapter in the HOST-COM cleanup —
+# HOST-COM has no article master data concept and no caller ever invoked
+# /hermes/articles/push. The .srv file in hermes_msgs is retained (deleting
+# it would force a cross-workspace IDL rebuild for zero benefit).
 from hermes_msgs.srv import (
     WarehousePick,
     WarehousePickStatus,
     WarehousePickCancel,
     ConsumeStock,
     ProduceStock,
-    PushArticle,
 )
 from hermes_msgs.msg import InventoryUpdate
 from builtin_interfaces.msg import Time
@@ -97,13 +102,6 @@ class HermesAdapterNode(Node):
             self._handle_produce_stock,
         )
 
-        # -- Article management ------------------------------------------------
-        self.create_service(
-            PushArticle,
-            "/hermes/articles/push",
-            self._handle_push_article,
-        )
-
         # -- Inventory update publisher ----------------------------------------
         self._inventory_pub = self.create_publisher(
             InventoryUpdate, "/hermes/inventory_updates", 10
@@ -117,10 +115,34 @@ class HermesAdapterNode(Node):
             10,
         )
 
+        # -- Observability: /diagnostics + latched tray_state topic -----------
+        # ARISE / standard ROS2 tooling expects every stateful node to publish
+        # on /diagnostics (rqt_robot_monitor, Foxglove's diagnostic panel,
+        # rviz diagnostic aggregator). The tray_state topic is a cheap latched
+        # Int16 so late-joining subscribers immediately learn which tray the
+        # adapter believes is at the pickup:
+        #   -1 = unknown (refresh has not completed yet)
+        #    0 = MP reports no tray at pickup
+        #   >0 = tray number
+        self._diag_pub = self.create_publisher(
+            DiagnosticArray, "/diagnostics", 10,
+        )
+        latched_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            history=HistoryPolicy.KEEP_LAST,
+        )
+        self._tray_state_pub = self.create_publisher(
+            Int16, "/hermes/warehouse/tray_state", latched_qos,
+        )
+        self._last_published_tray: Optional[int] = None
+        self.create_timer(1.0, self._publish_diagnostics)
+
         self.get_logger().info(
             "HermesAdapterNode ready — services: warehouse/pick, "
             "warehouse/status, warehouse/cancel, stock/consume, "
-            "stock/produce, articles/push"
+            "stock/produce | topics: /diagnostics, "
+            "/hermes/warehouse/tray_state (latched)"
         )
 
     # ======================================================================
@@ -260,23 +282,75 @@ class HermesAdapterNode(Node):
         return response
 
     # ======================================================================
-    # Article management
+    # Observability: /diagnostics + /hermes/warehouse/tray_state
     # ======================================================================
 
-    def _handle_push_article(
-        self,
-        request: PushArticle.Request,
-        response: PushArticle.Response,
-    ) -> PushArticle.Response:
-        self.get_logger().info("PushArticle: sku=%s name=%s", request.sku, request.name)
+    def _publish_diagnostics(self) -> None:
+        """1 Hz tick: publish DiagnosticArray + latched tray_state.
+
+        Pulls state from the warehouse client via :meth:`get_state_summary`
+        (default ``{}`` for backends with nothing to expose), plus the
+        cached last health-check results for Odoo and Orion.
+        """
         try:
-            response.success = self._run_async(
-                self._warehouse.push_article(request.sku, request.name)
-            )
+            summary: dict = self._warehouse.get_state_summary() or {}
         except Exception as exc:
-            self.get_logger().error("PushArticle failed: %s", exc)
-            response.success = False
-        return response
+            self.get_logger().debug("get_state_summary failed: %s", exc)
+            summary = {}
+
+        # --- Warehouse diagnostic status -----------------------------------
+        current_tray = summary.get("current_tray")
+        pending_jobs = int(summary.get("pending_jobs") or 0)
+        last_refresh = summary.get("last_pickup_refresh")
+
+        if not summary:
+            level = DiagnosticStatus.WARN
+            message = "no backend state (null or SOAP backend)"
+            hardware_id = "n/a"
+        elif current_tray is None:
+            # Client is connected but refresh never succeeded — warn.
+            level = DiagnosticStatus.WARN
+            message = "current tray unknown — refresh_pickup_state has not completed"
+            hardware_id = f"{summary.get('mp_host', '?')}:{summary.get('mp_port', '?')}"
+        elif pending_jobs >= 10:
+            level = DiagnosticStatus.ERROR
+            message = f"{pending_jobs} pick jobs pending — possible leak"
+            hardware_id = f"{summary.get('mp_host', '?')}:{summary.get('mp_port', '?')}"
+        else:
+            level = DiagnosticStatus.OK
+            tray_label = "none" if current_tray == 0 else str(current_tray)
+            message = f"tray {tray_label} at pickup, {pending_jobs} jobs pending"
+            hardware_id = f"{summary.get('mp_host', '?')}:{summary.get('mp_port', '?')}"
+
+        values = [
+            KeyValue(key=str(k), value=str(v)) for k, v in summary.items()
+        ]
+        warehouse_status = DiagnosticStatus(
+            level=level,
+            name="hermes_adapter: warehouse",
+            message=message,
+            hardware_id=hardware_id,
+            values=values,
+        )
+
+        header = Header()
+        header.stamp = self.get_clock().now().to_msg()
+        header.frame_id = ""
+        array = DiagnosticArray(header=header, status=[warehouse_status])
+        self._diag_pub.publish(array)
+
+        # --- Latched tray_state topic (publish only on change) -------------
+        tray_value: int = -1 if current_tray is None else int(current_tray)
+        if tray_value != self._last_published_tray:
+            msg = Int16()
+            msg.data = tray_value
+            self._tray_state_pub.publish(msg)
+            self._last_published_tray = tray_value
+            self.get_logger().info(
+                "tray_state → %d (prev=%s)",
+                tray_value,
+                "init" if self._last_published_tray is None else "changed",
+            )
 
     # ======================================================================
     # Mission state subscriber (absorbs ROS-FIWARE Bridge)

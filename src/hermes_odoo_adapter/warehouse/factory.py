@@ -40,6 +40,32 @@ def create_warehouse_client(settings: object) -> WarehouseClient:
         logger.info("Creating HanelSoapClient → %s", url)
         return HanelSoapClient(wsdl_url=url, timeout=timeout)
 
+    if backend == "hanel_hostcom":
+        from .hanel_hostcom import HanelHostComClient
+
+        host = getattr(settings, "hanel_hostcom_host", None)
+        if not host:
+            raise ValueError(
+                "HANEL_HOSTCOM_HOST must be set when WAREHOUSE_BACKEND=hanel_hostcom"
+            )
+        client = HanelHostComClient(
+            host=host,
+            port=getattr(settings, "hanel_hostcom_port", 2200),
+            elevator_num=getattr(settings, "hanel_elevator_num", 1),
+            pickup_point=getattr(settings, "hanel_pickup_point", 1),
+            sku_tray_map=getattr(settings, "hanel_sku_tray_map", {}) or {},
+            default_tray=getattr(settings, "hanel_default_tray", 8),
+        )
+        logger.info(
+            "Creating HanelHostComClient → %s:%d (elevator=%d, pickup=%d, default_tray=%d)",
+            host,
+            getattr(settings, "hanel_hostcom_port", 2200),
+            getattr(settings, "hanel_elevator_num", 1),
+            getattr(settings, "hanel_pickup_point", 1),
+            getattr(settings, "hanel_default_tray", 8),
+        )
+        return client
+
     # Default: NullWarehouseClient
     from .null import NullWarehouseClient
 
