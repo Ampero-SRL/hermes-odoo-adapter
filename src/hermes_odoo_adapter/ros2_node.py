@@ -165,7 +165,7 @@ class HermesAdapterNode(Node):
     ) -> WarehousePick.Response:
         job_id = request.job_id or f"J-{uuid.uuid4().hex[:8]}"
         self.get_logger().info(
-            "WarehousePick: job=%s sku=%s qty=%d", job_id, request.sku, request.quantity
+            f"WarehousePick: job={job_id} sku={request.sku} qty={request.quantity}"
         )
         try:
             result = self._run_async(
@@ -175,7 +175,7 @@ class HermesAdapterNode(Node):
             response.job_id = result.job_id
             response.error = result.error
         except Exception as exc:
-            self.get_logger().error("WarehousePick failed: %s", exc)
+            self.get_logger().error(f"WarehousePick failed: {exc}")
             response.success = False
             response.job_id = job_id
             response.error = str(exc)
@@ -194,7 +194,7 @@ class HermesAdapterNode(Node):
             response.slot = status.slot
             response.tray_ready = status.tray_ready
         except Exception as exc:
-            self.get_logger().error("WarehousePickStatus failed: %s", exc)
+            self.get_logger().error(f"WarehousePickStatus failed: {exc}")
             response.status = "failed"
             response.slot = ""
             response.tray_ready = False
@@ -210,7 +210,7 @@ class HermesAdapterNode(Node):
                 self._warehouse.cancel_pick(request.job_id)
             )
         except Exception as exc:
-            self.get_logger().error("WarehousePickCancel failed: %s", exc)
+            self.get_logger().error(f"WarehousePickCancel failed: {exc}")
             response.success = False
         return response
 
@@ -224,8 +224,8 @@ class HermesAdapterNode(Node):
         response: ConsumeStock.Response,
     ) -> ConsumeStock.Response:
         self.get_logger().info(
-            "ConsumeStock: project=%s sku=%s qty=%d",
-            request.project_id, request.sku, request.quantity,
+            f"ConsumeStock: project={request.project_id} "
+            f"sku={request.sku} qty={request.quantity}"
         )
         try:
             result = self._run_async(
@@ -247,7 +247,7 @@ class HermesAdapterNode(Node):
                 request.sku, response.remaining, 0.0, "", "mission_consume"
             )
         except Exception as exc:
-            self.get_logger().error("ConsumeStock failed: %s", exc)
+            self.get_logger().error(f"ConsumeStock failed: {exc}")
             response.success = False
             response.remaining = 0.0
         return response
@@ -258,8 +258,8 @@ class HermesAdapterNode(Node):
         response: ProduceStock.Response,
     ) -> ProduceStock.Response:
         self.get_logger().info(
-            "ProduceStock: project=%s sku=%s qty=%d",
-            request.project_id, request.sku, request.quantity,
+            f"ProduceStock: project={request.project_id} "
+            f"sku={request.sku} qty={request.quantity}"
         )
         try:
             self._run_async(
@@ -277,7 +277,7 @@ class HermesAdapterNode(Node):
                 request.sku, 0.0, 0.0, "", "mission_produce"
             )
         except Exception as exc:
-            self.get_logger().error("ProduceStock failed: %s", exc)
+            self.get_logger().error(f"ProduceStock failed: {exc}")
             response.success = False
         return response
 
@@ -373,16 +373,16 @@ class HermesAdapterNode(Node):
         try:
             payload = json.loads(msg.data)
         except json.JSONDecodeError:
-            self.get_logger().warning("Invalid JSON on /hermes/mission_state: %s", msg.data)
+            self.get_logger().warning(f"Invalid JSON on /hermes/mission_state: {msg.data}")
             return
 
         mission_id = payload.get("missionId")
         status = payload.get("status")
         if not mission_id or not status:
-            self.get_logger().warning("Mission state missing missionId/status: %s", payload)
+            self.get_logger().warning(f"Mission state missing missionId/status: {payload}")
             return
 
-        self.get_logger().info("Relaying mission state → Orion: %s → %s", mission_id, status)
+        self.get_logger().info(f"Relaying mission state → Orion: {mission_id} → {status}")
         try:
             update_attrs = {
                 "status": {"type": "Property", "value": status},
@@ -393,7 +393,7 @@ class HermesAdapterNode(Node):
                 self._orion.update_entity(mission_id, update_attrs, "Mission")
             )
         except Exception as exc:
-            self.get_logger().error("Failed to relay mission state for %s: %s", mission_id, exc)
+            self.get_logger().error(f"Failed to relay mission state for {mission_id}: {exc}")
 
     # ======================================================================
     # Internal helpers
