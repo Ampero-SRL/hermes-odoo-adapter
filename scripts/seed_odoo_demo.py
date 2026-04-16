@@ -86,71 +86,43 @@ class OdooMockSeeder:
             
             # Components (raw materials)
             {
-                "name": "LED Strip 24V 1m",
-                "default_code": "LED-STRIP-24V-1M",
+                "name": "Safety Relay 24VDC",
+                "default_code": "EL-SAFETY-RELAY",
                 "uom_id": [1, "Units"],
                 "active": True,
                 "categ_id": [2, "Components"]
             },
             {
-                "name": "Mounting Bracket Steel", 
-                "default_code": "BRACKET-STEEL-001",
+                "name": "Interface Relay 24VDC",
+                "default_code": "EL-IFACE-RELAY",
                 "uom_id": [1, "Units"],
                 "active": True,
                 "categ_id": [2, "Components"]
             },
             {
-                "name": "Control PCB Rev2.1",
-                "default_code": "PCB-CTRL-REV21",
+                "name": "Contactor",
+                "default_code": "EL-CONTACTOR",
                 "uom_id": [1, "Units"], 
                 "active": True,
                 "categ_id": [2, "Components"]
             },
             {
-                "name": "Safety Relay 24VDC",
-                "default_code": "RELAY-SAFETY-24V",
+                "name": "Auxiliary Contact Block",
+                "default_code": "EL-AUX-CONTACT",
                 "uom_id": [1, "Units"],
                 "active": True,
                 "categ_id": [2, "Components"]
             },
             {
-                "name": "Emergency Stop Button Red",
-                "default_code": "ESTOP-BTN-RED",
+                "name": "Modular Fuse Carrier",
+                "default_code": "EL-FUSE-CARRIER",
                 "uom_id": [1, "Units"],
                 "active": True,
                 "categ_id": [2, "Components"]
             },
             {
-                "name": "Display TFT 7inch",
-                "default_code": "TFT-DISPLAY-7IN",
-                "uom_id": [1, "Units"],
-                "active": True,
-                "categ_id": [2, "Components"]
-            },
-            {
-                "name": "Enclosure IP65 300x200x120",
-                "default_code": "ENCLOSURE-IP65-300",
-                "uom_id": [1, "Units"],
-                "active": True,
-                "categ_id": [2, "Components"]
-            },
-            {
-                "name": "Power Supply 24VDC 5A",
-                "default_code": "PSU-24VDC-5A",
-                "uom_id": [1, "Units"],
-                "active": True,
-                "categ_id": [2, "Components"]
-            },
-            {
-                "name": "Cable Assembly 2m",
-                "default_code": "CABLE-ASSY-2M",
-                "uom_id": [1, "Units"],
-                "active": True,
-                "categ_id": [2, "Components"]
-            },
-            {
-                "name": "Screws M4x12 DIN912",
-                "default_code": "SCREW-M4X12-DIN912",
+                "name": "Terminal Block Grey",
+                "default_code": "EL-TERMINAL-BLK",
                 "uom_id": [1, "Units"],
                 "active": True,
                 "categ_id": [2, "Components"]
@@ -187,30 +159,21 @@ class OdooMockSeeder:
         # BOM definitions: product_sku -> list of (component_sku, quantity)
         bom_definitions = {
             "CTRL-PANEL-A1": [
-                ("LED-STRIP-24V-1M", 2.0),
-                ("BRACKET-STEEL-001", 4.0), 
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0),
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 3.0),
-                ("SCREW-M4X12-DIN912", 12.0)
+                ("EL-SAFETY-RELAY", 1.0),
+                ("EL-IFACE-RELAY", 1.0),
+                ("EL-CONTACTOR", 1.0),
+                ("EL-AUX-CONTACT", 1.0),
+                ("EL-FUSE-CARRIER", 1.0),
             ],
             "SAFETY-SYS-B2": [
-                ("RELAY-SAFETY-24V", 2.0),
-                ("ESTOP-BTN-RED", 1.0),
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0),
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 2.0),
-                ("SCREW-M4X12-DIN912", 8.0)
+                ("EL-SAFETY-RELAY", 2.0),
+                ("EL-CONTACTOR", 1.0),
+                ("EL-TERMINAL-BLK", 2.0),
             ],
             "HMI-DISPLAY-C3": [
-                ("TFT-DISPLAY-7IN", 1.0),
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0), 
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 2.0),
-                ("SCREW-M4X12-DIN912", 6.0)
+                ("EL-IFACE-RELAY", 1.0),
+                ("EL-FUSE-CARRIER", 1.0),
+                ("EL-TERMINAL-BLK", 2.0),
             ]
         }
         
@@ -290,19 +253,12 @@ class OdooMockSeeder:
         
         # Stock definitions: sku -> (total_qty, reserved_qty)
         stock_definitions = {
-            # Components with good stock
-            "LED-STRIP-24V-1M": (50.0, 5.0),
-            "BRACKET-STEEL-001": (100.0, 20.0),
-            "PCB-CTRL-REV21": (25.0, 3.0),
-            "ENCLOSURE-IP65-300": (15.0, 2.0),
-            "PSU-24VDC-5A": (30.0, 5.0),
-            "CABLE-ASSY-2M": (80.0, 10.0),
-            "SCREW-M4X12-DIN912": (500.0, 50.0),
-            
-            # Some components with lower stock (for shortage scenarios)
-            "RELAY-SAFETY-24V": (8.0, 2.0),  # Low stock
-            "ESTOP-BTN-RED": (12.0, 1.0),
-            "TFT-DISPLAY-7IN": (5.0, 0.0),   # Very low stock
+            "EL-SAFETY-RELAY": (20.0, 2.0),
+            "EL-IFACE-RELAY": (20.0, 1.0),
+            "EL-CONTACTOR": (20.0, 1.0),
+            "EL-AUX-CONTACT": (20.0, 1.0),
+            "EL-FUSE-CARRIER": (20.0, 1.0),
+            "EL-TERMINAL-BLK": (40.0, 4.0),
             
             # Final products (usually zero stock as they're manufactured to order)
             "CTRL-PANEL-A1": (0.0, 0.0),
@@ -409,17 +365,17 @@ async def main():
         print("📊 SEEDED DATA SUMMARY")
         print("="*60)
         print("🏭 Final Products:")
-        print("  • CTRL-PANEL-A1 (Industrial Control Panel A1)")
-        print("  • SAFETY-SYS-B2 (Safety Control System B2)")  
-        print("  • HMI-DISPLAY-C3 (HMI Display Unit C3)")
+        print("  • CTRL-PANEL-A1 (5-part ASRS demo BOM)")
+        print("  • SAFETY-SYS-B2")
+        print("  • HMI-DISPLAY-C3")
         print("\n🔩 Components:")
         print("  • Electronic components (PCBs, displays, relays)")
         print("  • Mechanical parts (brackets, screws, cables)")
         print("  • Power supplies and enclosures")
         print("\n📦 Stock Scenarios:")
         print("  • Most components have good stock levels")
-        print("  • RELAY-SAFETY-24V has low stock (shortage scenario)")
-        print("  • TFT-DISPLAY-7IN has very low stock")
+        print("  • EL-SAFETY-RELAY / EL-IFACE-RELAY / EL-CONTACTOR")
+        print("  • EL-AUX-CONTACT / EL-FUSE-CARRIER / EL-TERMINAL-BLK")
         print("  • Final products manufactured to order")
         print("\n🧪 Try these test scenarios:")
         print("  curl -X POST http://localhost:8080/admin/recompute/test-001 \\")

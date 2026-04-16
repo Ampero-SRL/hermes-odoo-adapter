@@ -90,39 +90,13 @@ class OrionSeeder:
         # Demo projects with different scenarios
         projects_data = [
             {
-                "project_id": "demo-project-001",
-                "code": "CTRL-PANEL-A1",
-                "station": "STATION-A", 
+                "project_id": "asrs-demo-001",
+                "code": "ASRS-DEMO-001",
+                "product_id": "CTRL-PANEL-A1",
+                "quantity": 1,
+                "station": "STATION-A",
                 "status": "planning",
-                "description": "Demo project for Industrial Control Panel - should create reservation"
-            },
-            {
-                "project_id": "demo-project-002", 
-                "code": "SAFETY-SYS-B2",
-                "station": "STATION-B",
-                "status": "planning",
-                "description": "Demo project for Safety System - may create shortage (low relay stock)"
-            },
-            {
-                "project_id": "demo-project-003",
-                "code": "HMI-DISPLAY-C3",
-                "station": "STATION-C",
-                "status": "planning", 
-                "description": "Demo project for HMI Display - may create shortage (low display stock)"
-            },
-            {
-                "project_id": "demo-project-004",
-                "code": "CTRL-PANEL-A1",
-                "station": "STATION-D",
-                "status": "planning",
-                "description": "Second control panel project for testing multiple projects"
-            },
-            {
-                "project_id": "demo-project-005",
-                "code": "UNKNOWN-PRODUCT",
-                "station": "STATION-E",
-                "status": "planning",
-                "description": "Project with unknown product code (should fail gracefully)"
+                "description": "ASRS tray demo project for the 5-part CTRL-PANEL-A1 BOM"
             }
         ]
         
@@ -139,6 +113,14 @@ class OrionSeeder:
             try:
                 # Add custom description property
                 project_dict = project.dict(by_alias=True)
+                project_dict["productId"] = {
+                    "type": "Property",
+                    "value": project_data["product_id"]
+                }
+                project_dict["quantity"] = {
+                    "type": "Property",
+                    "value": project_data["quantity"]
+                }
                 project_dict["description"] = {
                     "type": "Property",
                     "value": project_data["description"]
@@ -171,16 +153,12 @@ class OrionSeeder:
         
         # Sample inventory data matching the Odoo seed data
         inventory_items = [
-            ("LED-STRIP-24V-1M", 45.0, 5.0),        # Available: 45, Reserved: 5  
-            ("BRACKET-STEEL-001", 80.0, 20.0),      # Available: 80, Reserved: 20
-            ("PCB-CTRL-REV21", 22.0, 3.0),          # Available: 22, Reserved: 3
-            ("ENCLOSURE-IP65-300", 13.0, 2.0),      # Available: 13, Reserved: 2
-            ("PSU-24VDC-5A", 25.0, 5.0),            # Available: 25, Reserved: 5
-            ("CABLE-ASSY-2M", 70.0, 10.0),          # Available: 70, Reserved: 10
-            ("SCREW-M4X12-DIN912", 450.0, 50.0),    # Available: 450, Reserved: 50
-            ("RELAY-SAFETY-24V", 6.0, 2.0),         # Available: 6, Reserved: 2 (LOW STOCK)
-            ("ESTOP-BTN-RED", 11.0, 1.0),           # Available: 11, Reserved: 1
-            ("TFT-DISPLAY-7IN", 5.0, 0.0),          # Available: 5, Reserved: 0 (VERY LOW)
+            ("EL-SAFETY-RELAY", 18.0, 2.0),
+            ("EL-IFACE-RELAY", 19.0, 1.0),
+            ("EL-CONTACTOR", 19.0, 1.0),
+            ("EL-AUX-CONTACT", 19.0, 1.0),
+            ("EL-FUSE-CARRIER", 19.0, 1.0),
+            ("EL-TERMINAL-BLK", 36.0, 4.0),
         ]
         
         created_count = 0
@@ -280,19 +258,14 @@ async def main():
         print("🌐 ORION-LD SEEDED DATA SUMMARY")
         print("="*60)
         print("📋 Demo Projects:")
-        print("  • demo-project-001: CTRL-PANEL-A1 @ STATION-A")
-        print("  • demo-project-002: SAFETY-SYS-B2 @ STATION-B (shortage scenario)")
-        print("  • demo-project-003: HMI-DISPLAY-C3 @ STATION-C (shortage scenario)")
-        print("  • demo-project-004: CTRL-PANEL-A1 @ STATION-D")
-        print("  • demo-project-005: UNKNOWN-PRODUCT @ STATION-E (error scenario)")
+        print("  • asrs-demo-001: ASRS-DEMO-001 -> CTRL-PANEL-A1 @ STATION-A")
         print("\n📦 Inventory Items:")
-        print("  • Component stock levels reflecting Odoo Mock data")
-        print("  • Some items have low stock for shortage testing")
+        print("  • HERMES tray component stock aligned with the ASRS demo")
         print("\n🎯 Next Steps:")
         print("  1. Start the HERMES adapter:")
         print("     make up")
         print("  2. Trigger a project by changing status to 'requested':")
-        print("     curl -X PATCH http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-001/attrs \\")
+        print("     curl -X PATCH http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:asrs-demo-001/attrs \\")
         print("       -H 'Content-Type: application/ld+json' \\")
         print("       -d '{\"status\": {\"type\": \"Property\", \"value\": \"requested\"}}'")
         print("  3. Check results:")

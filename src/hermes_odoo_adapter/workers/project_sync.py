@@ -77,6 +77,7 @@ class ProjectSyncWorker:
         # Extract project details
         project_id = entity_id.split(":")[-1] if entity_id else "unknown"
         project_code = self._extract_property_value(entity_data, "code")
+        product_id = self._extract_property_value(entity_data, "productId")
         station = self._extract_property_value(entity_data, "station")
         status = self._extract_property_value(entity_data, "status")
         quantity = self._extract_property_value(entity_data, "quantity")
@@ -97,7 +98,13 @@ class ProjectSyncWorker:
                     return
 
                 if status == "requested":
-                    result = await self._process_project_request(project_id, project_code, station, quantity)
+                    result = await self._process_project_request(
+                        project_id,
+                        project_code,
+                        station,
+                        quantity,
+                        product_code=product_id,
+                    )
                     idempotency_helper.mark_project_processed(project_id, entity_data, result)
                 else:
                     logger.debug("Project status not 'requested', ignoring", status=status)
@@ -106,16 +113,37 @@ class ProjectSyncWorker:
                 logger.error("Error processing project", project_id=project_id, error=str(e))
                 raise
     
-    async def _process_project_request(self, project_id: str, project_code: str, station: Optional[str], quantity: int = 1) -> Dict[str, Any]:
+    async def _process_project_request(
+        self,
+        project_id: str,
+        project_code: str,
+        station: Optional[str],
+        quantity: int = 1,
+        product_code: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """Process a project request - check BOM and stock"""
-        logger.info("Processing project request", project_id=project_id, project_code=project_code, quantity=quantity)
+        logger.info(
+            "Processing project request",
+            project_id=project_id,
+            project_code=project_code,
+            product_code=product_code,
+            quantity=quantity,
+        )
         
         try:
-            # Step 1: Find product by project code
-            product = await self._get_product_by_project_code(project_code)
+            # Step 1: Find product by explicit product code first, then project code/mapping.
+            product = await self._get_product_for_project(
+                project_code=project_code,
+                product_code=product_code,
+            )
             if not product:
-                error_msg = f"No product found for project code: {project_code}"
-                logger.warning(error_msg, project_code=project_code)
+                lookup_key = product_code or project_code
+                error_msg = f"No product found for requested product: {lookup_key}"
+                logger.warning(
+                    error_msg,
+                    project_code=project_code,
+                    product_code=product_code,
+                )
                 return {"error": error_msg}
             
             logger.info("Found product", product_id=product["id"], product_name=product.get("name"))
@@ -153,20 +181,43 @@ class ProjectSyncWorker:
             logger.error("Unexpected error during project processing", project_id=project_id, error=str(e))
             raise
     
-    async def _get_product_by_project_code(self, project_code: str) -> Optional[Dict[str, Any]]:
-        """Get product by project code (using SKU field)"""
-        # Try direct SKU lookup first
-        product = await self.odoo_client.get_product_by_sku(project_code)
-        
-        if not product:
-            # Try loading project mapping file
+    async def _get_product_for_project(
+        self,
+        *,
+        project_code: Optional[str],
+        product_code: Optional[str],
+    ) -> Optional[Dict[str, Any]]:
+        """Resolve the Odoo product for a Project entity.
+
+        Preferred order:
+        1. explicit ``productId`` from the Project entity
+        2. direct lookup by Project.code
+        3. project_mapping.json fallback for Project.code
+        """
+        direct_candidates: list[str] = []
+        if product_code:
+            direct_candidates.append(product_code)
+        if project_code and project_code not in direct_candidates:
+            direct_candidates.append(project_code)
+
+        for candidate in direct_candidates:
+            product = await self.odoo_client.get_product_by_sku(candidate)
+            if product:
+                logger.info("Resolved project product", lookup_sku=candidate, source="direct")
+                return product
+
+        if project_code:
             mapping = await self._load_project_mapping()
             if mapping and project_code in mapping:
                 mapped_sku = mapping[project_code]
-                logger.info("Using project mapping", project_code=project_code, mapped_sku=mapped_sku)
-                product = await self.odoo_client.get_product_by_sku(mapped_sku)
-        
-        return product
+                logger.info(
+                    "Using project mapping",
+                    project_code=project_code,
+                    mapped_sku=mapped_sku,
+                )
+                return await self.odoo_client.get_product_by_sku(mapped_sku)
+
+        return None
     
     async def _load_project_mapping(self) -> Optional[Dict[str, str]]:
         """Load project code to SKU mapping from file"""

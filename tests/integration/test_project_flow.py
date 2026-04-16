@@ -193,6 +193,63 @@ class TestProjectFlowIntegration:
         
         # No Orion entities should be created
         mock_orion_client.upsert_entity.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_product_id_takes_precedence_over_project_code(
+        self,
+        mock_odoo_client,
+        mock_orion_client,
+    ):
+        """Use Project.productId as the BOM/product selector when provided."""
+        mock_odoo_client.get_product_by_sku.side_effect = [
+            {
+                "id": 321,
+                "name": "ASRS Demo Panel",
+                "default_code": "CTRL-PANEL-A1",
+            }
+        ]
+        mock_odoo_client.get_bom_for_product.return_value = {
+            "id": 654,
+            "product_id": [321, "ASRS Demo Panel"],
+            "product_qty": 1.0,
+            "bom_line_ids": [901],
+        }
+        mock_odoo_client.get_bom_lines.return_value = [
+            {
+                "id": 901,
+                "product_id": [111, "Safety Relay"],
+                "product_qty": 1.0,
+            }
+        ]
+        mock_odoo_client.get_stock_for_products.return_value = [
+            {
+                "product_id": [111, "Safety Relay"],
+                "quantity": 3.0,
+                "reserved_quantity": 0.0,
+            }
+        ]
+        mock_odoo_client.read.return_value = [
+            {"id": 111, "default_code": "EL-SAFETY-RELAY"}
+        ]
+        mock_orion_client.upsert_entity.return_value = {"status": "success"}
+
+        worker = ProjectSyncWorker(mock_odoo_client, mock_orion_client)
+        project_notification = {
+            "id": "urn:ngsi-ld:Project:demo-five-part-001",
+            "type": "Project",
+            "code": {"type": "Property", "value": "DEMO-ORDER-001"},
+            "productId": {"type": "Property", "value": "CTRL-PANEL-A1"},
+            "status": {"type": "Property", "value": "requested"},
+        }
+
+        await worker.handle_project_notification(project_notification)
+
+        mock_odoo_client.get_product_by_sku.assert_called_once_with("CTRL-PANEL-A1")
+        reservation_calls = [
+            call for call in mock_orion_client.upsert_entity.call_args_list
+            if call[0][0].type == "Reservation"
+        ]
+        assert len(reservation_calls) == 1
     
     @pytest.mark.asyncio
     async def test_no_bom_found_flow(self, mock_odoo_client, mock_orion_client):

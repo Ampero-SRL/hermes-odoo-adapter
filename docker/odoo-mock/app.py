@@ -167,6 +167,28 @@ BOM_LINES = [
         "product_id": [5, "Wago Connector"],
         "product_qty": 6.0,  # This will cause shortage
         "product_uom_id": [1, "Unit"]
+    },
+    # Project1 BOM Lines (ARISE XR Panel)
+    {
+        "id": 10,
+        "bom_id": [2, "ARISE XR Panel - Project1 BOM"],
+        "product_id": [11, "Siemens PLC S7-1200"],
+        "product_qty": 1.0,
+        "product_uom_id": [1, "Unit"]
+    },
+    {
+        "id": 11,
+        "bom_id": [2, "ARISE XR Panel - Project1 BOM"],
+        "product_id": [12, "ABB MCB S202-C10"],
+        "product_qty": 1.0,
+        "product_uom_id": [1, "Unit"]
+    },
+    {
+        "id": 12,
+        "bom_id": [2, "ARISE XR Panel - Project1 BOM"],
+        "product_id": [13, "Schneider Contactor"],
+        "product_qty": 1.0,
+        "product_uom_id": [1, "Unit"]
     }
 ]
 
