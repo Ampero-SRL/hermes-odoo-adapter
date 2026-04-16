@@ -229,41 +229,8 @@ class RealOdooSeeder:
             
             # Components
             {
-                "name": "LED Strip 24V 1m",
-                "default_code": "LED-STRIP-24V-1M",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 25.0,
-            },
-            {
-                "name": "Mounting Bracket Steel",
-                "default_code": "BRACKET-STEEL-001",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 12.50,
-            },
-            {
-                "name": "Control PCB Rev2.1",
-                "default_code": "PCB-CTRL-REV21",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 125.0,
-            },
-            {
                 "name": "Safety Relay 24VDC",
-                "default_code": "RELAY-SAFETY-24V",
+                "default_code": "EL-SAFETY-RELAY",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
@@ -273,70 +240,59 @@ class RealOdooSeeder:
                 "standard_price": 85.0,
             },
             {
-                "name": "Emergency Stop Button Red",
-                "default_code": "ESTOP-BTN-RED",
+                "name": "Interface Relay 24VDC",
+                "default_code": "EL-IFACE-RELAY",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
                 "uom_po_id": uom_id,
                 "sale_ok": False,
                 "purchase_ok": True,
-                "standard_price": 45.0,
+                "standard_price": 62.0,
             },
             {
-                "name": "Display TFT 7inch",
-                "default_code": "TFT-DISPLAY-7IN",
+                "name": "Contactor",
+                "default_code": "EL-CONTACTOR",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
                 "uom_po_id": uom_id,
                 "sale_ok": False,
                 "purchase_ok": True,
-                "standard_price": 180.0,
+                "standard_price": 74.0,
             },
             {
-                "name": "Enclosure IP65 300x200x120",
-                "default_code": "ENCLOSURE-IP65-300",
+                "name": "Auxiliary Contact Block",
+                "default_code": "EL-AUX-CONTACT",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
                 "uom_po_id": uom_id,
                 "sale_ok": False,
                 "purchase_ok": True,
-                "standard_price": 95.0,
+                "standard_price": 28.0,
             },
             {
-                "name": "Power Supply 24VDC 5A",
-                "default_code": "PSU-24VDC-5A",
+                "name": "Modular Fuse Carrier",
+                "default_code": "EL-FUSE-CARRIER",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
                 "uom_po_id": uom_id,
                 "sale_ok": False,
                 "purchase_ok": True,
-                "standard_price": 55.0,
+                "standard_price": 18.0,
             },
             {
-                "name": "Cable Assembly 2m",
-                "default_code": "CABLE-ASSY-2M",
+                "name": "Terminal Block Grey",
+                "default_code": "EL-TERMINAL-BLK",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
                 "uom_po_id": uom_id,
                 "sale_ok": False,
                 "purchase_ok": True,
-                "standard_price": 15.0,
-            },
-            {
-                "name": "Screws M4x12 DIN912",
-                "default_code": "SCREW-M4X12-DIN912",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 0.25,
+                "standard_price": 6.0,
             }
         ]
         
@@ -377,30 +333,21 @@ class RealOdooSeeder:
         # BOM definitions
         bom_definitions = {
             "CTRL-PANEL-A1": [
-                ("LED-STRIP-24V-1M", 2.0),
-                ("BRACKET-STEEL-001", 4.0),
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0),
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 3.0),
-                ("SCREW-M4X12-DIN912", 12.0)
+                ("EL-SAFETY-RELAY", 1.0),
+                ("EL-IFACE-RELAY", 1.0),
+                ("EL-CONTACTOR", 1.0),
+                ("EL-AUX-CONTACT", 1.0),
+                ("EL-FUSE-CARRIER", 1.0),
             ],
             "SAFETY-SYS-B2": [
-                ("RELAY-SAFETY-24V", 2.0),
-                ("ESTOP-BTN-RED", 1.0),
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0),
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 2.0),
-                ("SCREW-M4X12-DIN912", 8.0)
+                ("EL-SAFETY-RELAY", 2.0),
+                ("EL-CONTACTOR", 1.0),
+                ("EL-TERMINAL-BLK", 2.0),
             ],
             "HMI-DISPLAY-C3": [
-                ("TFT-DISPLAY-7IN", 1.0),
-                ("PCB-CTRL-REV21", 1.0),
-                ("ENCLOSURE-IP65-300", 1.0),
-                ("PSU-24VDC-5A", 1.0),
-                ("CABLE-ASSY-2M", 2.0),
-                ("SCREW-M4X12-DIN912", 6.0)
+                ("EL-IFACE-RELAY", 1.0),
+                ("EL-FUSE-CARRIER", 1.0),
+                ("EL-TERMINAL-BLK", 2.0),
             ]
         }
         
@@ -470,78 +417,77 @@ class RealOdooSeeder:
         """Create initial stock quantities"""
         logger.info("Setting initial stock quantities")
         
-        # Find stock location
-        stock_locations = await self.client.search_read(
-            "stock.location",
-            [("usage", "=", "internal"), ("name", "ilike", "stock")],
-            ["id", "name"]
-        )
-        
-        if not stock_locations:
-            logger.error("Could not find stock location")
-            return
-        
-        stock_location_id = stock_locations[0]["id"]
-        logger.info(f"Using stock location: {stock_locations[0]['name']} (ID: {stock_location_id})")
-        
-        # Stock quantities (SKU -> quantity)
-        stock_quantities = {
-            # Components with good stock
-            "LED-STRIP-24V-1M": 50.0,
-            "BRACKET-STEEL-001": 100.0,
-            "PCB-CTRL-REV21": 25.0,
-            "ENCLOSURE-IP65-300": 15.0,
-            "PSU-24VDC-5A": 30.0,
-            "CABLE-ASSY-2M": 80.0,
-            "SCREW-M4X12-DIN912": 500.0,
+        try:
+            # Find stock location
+            stock_locations = await self.client.search_read(
+                "stock.location",
+                [("usage", "=", "internal"), ("name", "ilike", "stock")],
+                ["id", "name"]
+            )
             
-            # Components with limited stock (for shortage scenarios)
-            "RELAY-SAFETY-24V": 8.0,   # Low stock
-            "ESTOP-BTN-RED": 12.0,
-            "TFT-DISPLAY-7IN": 5.0,    # Very low stock
-        }
-        
-        inventory_id = await self.client.create(
-            "stock.inventory",
-            {
-                "name": "Initial HERMES stock seed",
-                "location_ids": [(6, 0, [stock_location_id])],
-            },
-        )
-        lines_created = 0
-
-        for sku, quantity in stock_quantities.items():
-            if sku not in sku_to_id:
-                logger.warning(f"SKU {sku} not found, skipping stock adjustment")
-                continue
+            if not stock_locations:
+                logger.error("Could not find stock location")
+                return
             
-            product_id = sku_to_id[sku]
+            stock_location_id = stock_locations[0]["id"]
+            logger.info(f"Using stock location: {stock_locations[0]['name']} (ID: {stock_location_id})")
             
-            try:
-                product_data = await self.client.read(
-                    "product.product", product_id, ["uom_id"]
-                )
-                uom_id = product_data[0]["uom_id"][0]
+            # Stock quantities (SKU -> quantity)
+            stock_quantities = {
+                "EL-SAFETY-RELAY": 20.0,
+                "EL-IFACE-RELAY": 20.0,
+                "EL-CONTACTOR": 20.0,
+                "EL-AUX-CONTACT": 20.0,
+                "EL-FUSE-CARRIER": 20.0,
+                "EL-TERMINAL-BLK": 40.0,
+            }
+            
+            inventory_id = await self.client.create(
+                "stock.inventory",
+                {
+                    "name": "Initial HERMES stock seed",
+                    "location_ids": [(6, 0, [stock_location_id])],
+                },
+            )
+            lines_created = 0
 
-                line_vals = {
-                    "inventory_id": inventory_id,
-                    "product_id": product_id,
-                    "location_id": stock_location_id,
-                    "product_qty": quantity,
-                    "product_uom_id": uom_id,
-                }
-                await self.client.create("stock.inventory.line", line_vals)
-                lines_created += 1
-                logger.info(f"Prepared stock line for {sku}: {quantity} units")
-            except Exception as e:
-                logger.error(f"Error preparing stock for {sku}: {e}")
+            for sku, quantity in stock_quantities.items():
+                if sku not in sku_to_id:
+                    logger.warning(f"SKU {sku} not found, skipping stock adjustment")
+                    continue
+                
+                product_id = sku_to_id[sku]
+                
+                try:
+                    product_data = await self.client.read(
+                        "product.product", product_id, ["uom_id"]
+                    )
+                    uom_id = product_data[0]["uom_id"][0]
 
-        if lines_created:
-            await self.client.call("stock.inventory", "action_start", [[inventory_id]])
-            await self.client.call("stock.inventory", "action_validate", [[inventory_id]])
-            logger.info("Stock quantity setup completed")
-        else:
-            logger.warning("No stock lines were created; skipping inventory validation")
+                    line_vals = {
+                        "inventory_id": inventory_id,
+                        "product_id": product_id,
+                        "location_id": stock_location_id,
+                        "product_qty": quantity,
+                        "product_uom_id": uom_id,
+                    }
+                    await self.client.create("stock.inventory.line", line_vals)
+                    lines_created += 1
+                    logger.info(f"Prepared stock line for {sku}: {quantity} units")
+                except Exception as e:
+                    logger.error(f"Error preparing stock for {sku}: {e}")
+
+            if lines_created:
+                await self.client.call("stock.inventory", "action_start", [[inventory_id]])
+                await self.client.call("stock.inventory", "action_validate", [[inventory_id]])
+                logger.info("Stock quantity setup completed")
+            else:
+                logger.warning("No stock lines were created; skipping inventory validation")
+        except Exception as e:
+            logger.warning(
+                "Stock quantity setup skipped due to Odoo stock API error",
+                error=str(e),
+            )
     
     async def verify_setup(self, sku_to_id: Dict[str, int]):
         """Verify the seeded data"""
