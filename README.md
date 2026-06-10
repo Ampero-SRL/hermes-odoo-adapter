@@ -23,9 +23,74 @@ A **hybrid ROS2 + FastAPI adapter** that bridges **Odoo ERP**, **FIWARE Context 
 - **Production Ready**: Circuit breakers, retry logic, Prometheus metrics, structured logging
 - **Docker-First**: Vulcanexus Humble base image with multi-stage build
 
+## Connection with ARISE
+
+The adapter is the integration backbone of an **ARISE Reusable HRI
+Module**: it composes the four All-in-one-middleware pillars in a
+single process so a downstream Mission Controller stays simple.
+
+| ARISE pillar | How the adapter uses it |
+|---|---|
+| **Vulcanexus / ROS 2** | Runs on `eprosima/vulcanexus:humble` (`vulcanexus-humble-core 2.8.0`, Fast-DDS 2.14.4). The `rclpy` node lives in a background thread inside FastAPI. Exposes 5 service servers + 3 publishers + 1 subscriber over `ROS_DOMAIN_ID=42`. |
+| **FIWARE / NGSI-LD** | Owns four canonical entity types (`Project`, `Reservation`, `Shortage`, `InventoryItem`) against Orion-LD, with public JSON Schemas in [`contracts/schemas/`](contracts/schemas/) and a project-specific `@context` in [`contracts/context/`](contracts/context/). |
+| **DDS-NGSI-LD integration** | In-process bridging (`ros2_node.py` ↔ `orion_client.py`). The FIWARE DDS Enabler is N/A; the canonical topic↔entity mapping is documented in [`config/README.md`](config/README.md) for any third party who wants to plug the enabler in. |
+| **ROS4HRI / ROS4RI** | Publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg) on the canonical `/intents` topic for every Odoo planner manufacturing-order event (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`). |
+
+For the full report-level narrative see
+[`docs/01_arise_context.md`](docs/01_arise_context.md) and the D4
+written-report draft at [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md).
+
 ## Architecture
 
-The adapter acts as the central hub — one process, four protocols:
+The adapter acts as the central hub — one process, four protocols.
+GitHub renders the Mermaid diagram below inline; for tools that don't
+render Mermaid, an ASCII fallback follows in the `<details>` block.
+
+```mermaid
+flowchart LR
+    subgraph Robotics["Robotics cell (ROS 2 / Vulcanexus)"]
+        MC["Mission Controller<br/>(hermes_main)"]
+        Cobot["JAKA Pro 16 / cuMotion"]
+        AGV["XBOT AGV"]
+        Vision["Jetson + Basler 4K"]
+    end
+
+    subgraph Adapter["HERMES Odoo Adapter (this repo)"]
+        direction TB
+        FAPI["FastAPI HTTP face<br/>:8080 — healthz / readyz<br/>POST /orion/notifications<br/>POST /api/consume / produce<br/>/metrics, /admin/*"]
+        RNODE["rclpy node hermes_adapter<br/>5 srv + 3 pub + 1 sub<br/>+ /intents (ROS4HRI)"]
+        WClient["WarehouseClient ABC<br/>NullWarehouseClient (demo default)<br/>HanelHostComClient (TCP, production)<br/>HanelSoapClient (HOST-WEB SOAP, legacy)"]
+    end
+
+    subgraph Twin["FIWARE digital twin"]
+        Orion["Orion-LD :1026"]
+        Mongo["MongoDB"]
+        Orion --- Mongo
+    end
+
+    subgraph Plant["Plant / business systems"]
+        Odoo["Odoo 17 ERP"]
+        Hanel["Hanel MP 12N<br/>HOST-COM (TCP 2200)<br/>HOST-WEB SOAP"]
+    end
+
+    Hololens["HoloLens AR app<br/>(panelserver + StereoKit)"]
+
+    MC -- "DDS services<br/>warehouse/pick · stock/consume" --> RNODE
+    MC -- "DDS topic<br/>/hermes/mission_state" --> RNODE
+    RNODE -- "DDS topics<br/>/hermes/inventory_updates<br/>/hermes/warehouse/tray_state<br/>/intents (ROS4HRI)" --> MC
+    FAPI -- "JSON-RPC" --> Odoo
+    FAPI -- "NGSI-LD" --> Orion
+    WClient -- "HOST-COM / SOAP" --> Hanel
+    Hololens -- "NGSI-LD" --> Orion
+    Orion -- "subscription notify" --> FAPI
+```
+
+A richer Mermaid sequence-diagram set is at
+[`media/sequence_diagram.md`](media/sequence_diagram.md) (Shortage flow,
+Reservation top-up, Mission Controller pick).
+
+<details>
+<summary>ASCII fallback diagram</summary>
 
 ```
                          ROS2 DDS (Fast-DDS / Vulcanexus)
@@ -41,35 +106,68 @@ The adapter acts as the central hub — one process, four protocols:
           │  Services:                    GET  /healthz          │
           │   /hermes/warehouse/pick      GET  /readyz           │
           │   /hermes/warehouse/status    GET  /metrics          │
-          │   /hermes/warehouse/cancel    POST /orion/notify     │
+          │   /hermes/warehouse/cancel    POST /orion/notifications │
           │   /hermes/stock/consume       POST /api/consume      │
           │   /hermes/stock/produce       POST /api/produce      │
           │                               GET  /admin/...        │
-          │                                                     │
           │  Topics:                                            │
-          │   /hermes/inventory_updates (pub)                   │
-          │   /hermes/mission_state (sub)                       │
+          │   /hermes/inventory_updates  (pub)                  │
+          │   /hermes/warehouse/tray_state (pub, latched)        │
+          │   /diagnostics                (pub)                  │
+          │   /intents                    (pub, ROS4HRI)         │
+          │   /hermes/mission_state      (sub)                  │
           │                                                     │
           │  ┌───────────┐  ┌───────────┐  ┌─────────────────┐ │
           │  │ Odoo      │  │ Orion     │  │ Warehouse       │ │
           │  │ Client    │  │ Client    │  │ Client          │ │
-          │  │ (JSONRPC) │  │ (NGSILD)  │  │ ┌─────────────┐ │ │
-          │  │           │  │           │  │ │ HanelSoap   │ │ │
-          │  │           │  │           │  │ │ (SOAP 1.1)  │ │ │
-          │  │           │  │           │  │ ├─────────────┤ │ │
-          │  │           │  │           │  │ │ NullClient  │ │ │
-          │  │           │  │           │  │ │ (dev/test)  │ │ │
-          │  │           │  │           │  │ └─────────────┘ │ │
+          │  │ (JSONRPC) │  │ (NGSILD)  │  │ HostCom/SOAP/Null│ │
           │  └─────┬─────┘  └─────┬─────┘  └───────┬─────────┘ │
           └────────┼──────────────┼─────────────────┼───────────┘
                    │              │                  │
-                JSON-RPC       NGSI-LD            SOAP 1.1
+                JSON-RPC       NGSI-LD            HOST-COM/SOAP
                    ▼              ▼                  ▼
              ┌──────────┐  ┌──────────┐      ┌──────────────┐
              │ Odoo ERP │  │ Orion-LD │      │  Hanel MP    │
              └──────────┘  └──────────┘      │  Controller  │
                                              └──────────────┘
 ```
+
+</details>
+
+## Target platforms
+
+| Category | Tested | Expected compatibility | Unsupported |
+|---|---|---|---|
+| **Manipulator / cobot** | JAKA Pro 16 (×2, ASRS picking + assembly handover) | Any ROS 2-driven cobot whose driver exposes joint-trajectory + gripper interfaces — the adapter never talks to the cobot directly; the Mission Controller does. | — |
+| **Mobile robot / AGV** | XBOT AGV (433 MHz / RS485 wireless) | Any AGV that exposes a docking action via ROS 2 (e.g. `nav2`). | — |
+| **Industrial cell / PLC** | Hänel MP 12N HOST-COM controller (TCP telegrams) + HOST-WEB SOAP fallback | Any vertical lift / vertical carousel that can be wrapped behind the `WarehouseClient` ABC (≈300 LOC). | Other lift vendors today — needs a new client. |
+| **Sensors** | Basler a2A3840-45ucPRO 4K USB3 + Jetson DINOv2 + grabcut detection | Any RGB camera + detection node publishing `hermes_msgs/msg/DetectedComponent` or `InventoryUpdate`. | — |
+| **Operator UI** | HoloLens 2 + StereoKit/OpenXR AR app | Any NGSI-LD-aware operator console. | — |
+| **Simulation / mock** | `NullWarehouseClient` + `docker/odoo-mock/` (in this repo) + Vulcanexus Humble in Docker | Gazebo / Isaac Sim are out-of-scope for the adapter itself (the adapter has no physics) but compose cleanly with one if the Mission Controller drives it. | — |
+
+## Robot missions and tasks
+
+| Mission type | Adapter contribution |
+|---|---|
+| **Collaborative assembly** | Drives the BOM-to-cell pipeline: Odoo MO → `Reservation` → `WarehousePick` → cobot pick + AGV handover → `ConsumeStock`. |
+| **Intralogistics** | Vertical-lift HOST-COM orchestration + AGV docking coordination via Mission Controller. |
+| **Operator monitoring / assistance** | Surfaces `Project.status` / `Shortage` to any FIWARE-aware operator dashboard (HoloLens AR app today). |
+| **Teleoperation / remote supervision** | Partial — operator selection from the HoloLens AR app is propagated back to FIWARE. |
+| Collaborative assembly tasks supported | (i) BOM resolution + shortage detection, (ii) warehouse pick orchestration, (iii) stock consume / produce, (iv) Mission-state bridging to FIWARE, (v) ROS4HRI Intent publication for the Odoo planner. |
+
+For the mission/task-mapping detail see
+[`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md).
+
+## Off-the-shelf capabilities
+
+| Capability | Input | Output | Interface | Status |
+|---|---|---|---|---|
+| Warehouse pick orchestration | ROS 2 srv call | DDS reply + Hänel HOST-COM telegrams | DDS / SOAP / HOST-COM | Implemented + tested |
+| Stock consume / produce | ROS 2 srv call (or HTTP `/api/consume`/`/api/produce`) | Odoo stock move + NGSI-LD PATCH | DDS / JSON-RPC / NGSI-LD | Implemented + tested |
+| BOM resolution + shortage detection | NGSI-LD `Project` create | `Reservation` + `Shortage` entities | NGSI-LD | Implemented |
+| Inventory streaming | (background worker) | `/hermes/inventory_updates` topic + NGSI-LD `InventoryItem` PATCH | DDS / NGSI-LD | Implemented |
+| Mission-state → FIWARE bridge | DDS subscription | NGSI-LD entity patches | DDS / NGSI-LD | Implemented |
+| **ROS4HRI Intent publishing** | Odoo MO ingestion event | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY` / `source=erp/odoo`) | DDS (ROS4HRI) | Implemented (Sprint 0.4) |
 
 ### Key Components
 
@@ -405,6 +503,41 @@ JSON logs with correlation IDs via `structlog`:
 - [FIWARE Orion-LD](https://github.com/FIWARE/context.Orion-LD) — NGSI-LD Context Broker
 - [Vulcanexus](https://vulcanexus.io/) — eProsima Fast-DDS distribution for ROS2
 - [Odoo](https://github.com/odoo/odoo) — Open Source ERP
+
+## Limitations & known gaps
+
+- The adapter exercises the integration backbone; it does **not** include
+  the cobot motion logic, the vision detection, the AGV driver or the
+  HoloLens AR app — those are independent modules in `hermes_main/`,
+  `hermes_asrs_station/`, and `ARISE-AR-APP/`.
+- The Hänel HOST-COM client is validated only against the MP 12N
+  controller in the HERMES TRL6-7 demonstrator. Other Hänel models or
+  other vendors need a fresh `WarehouseClient` implementation
+  (≈300 LOC).
+- ROS4HRI **operator** intents (HoloLens placement-confirmation /
+  project-selected / assembly-complete) are out of scope for this repo
+  and are planned in `hermes_main` companion nodes. The mapping is
+  locked in [`docs/D4_PLAN.md`](docs/D4_PLAN.md) §4.4.
+- The adapter has not yet been validated under cross-network DDS
+  conditions (Vulcanexus Discovery Server / Easy Mode); production
+  deployments today are single-host.
+- The shipped Vulcanexus image contains the DDS Router / DDS Recorder
+  / Dynamic Types tooling but the adapter doesn't yet exercise them
+  (listed under §3.3.10 future work).
+
+## Citation / contact
+
+- **Maintainer:** Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l.
+- **Issue tracker:** <https://github.com/Ampero-SRL/hermes-odoo-adapter/issues>
+- **ARISE D4 written report (draft):** [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md)
+- **Third-party licenses:** [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)
+
+Cite as:
+
+> Solinas, F. (2026). *HERMES Odoo Adapter — an ARISE Reusable HRI
+> Module bridging Odoo, FIWARE NGSI-LD and Vulcanexus / ROS 2 with a
+> ROS4HRI Intent publisher.* Ampero S.r.l.
+> <https://github.com/Ampero-SRL/hermes-odoo-adapter>.
 
 ## License
 
