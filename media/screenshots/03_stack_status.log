@@ -1,0 +1,9 @@
+# Demo stack containers — captured 2026-06-10
+
+$ docker compose -f docker/docker-compose.demo.yml ps
+time="2026-06-10T18:13:34+02:00" level=warning msg="/tmp/d4-fresh-clone-test/hermes-odoo-adapter/docker/docker-compose.demo.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+NAME               IMAGE                   COMMAND                  SERVICE     CREATED          STATUS                             PORTS
+hermes-adapter     docker-adapter          "/docker-entrypoint-…"   adapter     33 seconds ago   Up 32 seconds (healthy)            0.0.0.0:8080->8080/tcp, [::]:8080->8080/tcp, 9090/tcp
+hermes-mongo       mongo:4.4               "docker-entrypoint.s…"   mongo       33 seconds ago   Up 32 seconds                      0.0.0.0:27017->27017/tcp, [::]:27017->27017/tcp
+hermes-odoo-mock   docker-odoo-mock        "uvicorn app:app --h…"   odoo-mock   33 seconds ago   Up 32 seconds (health: starting)   0.0.0.0:8069->8069/tcp, [::]:8069->8069/tcp
+hermes-orion-ld    fiware/orion-ld:1.4.0   "orionld -fg -multis…"   orion-ld    33 seconds ago   Up 32 seconds (healthy)            0.0.0.0:1026->1026/tcp, [::]:1026->1026/tcp

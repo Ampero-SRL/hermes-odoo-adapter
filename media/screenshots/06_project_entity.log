@@ -1,0 +1,16 @@
+{
+    "id": "urn:ngsi-ld:Project:demo-ctrl-1",
+    "type": "https://hermes.example.org/contexts/manufacturing#Project",
+    "https://hermes.example.org/contexts/manufacturing#code": {
+        "type": "Property",
+        "value": "DEMO-CTRL"
+    },
+    "https://hermes.example.org/contexts/manufacturing#station": {
+        "type": "Property",
+        "value": "assembly-cell-1"
+    },
+    "status": {
+        "type": "Property",
+        "value": "shortage"
+    }
+}

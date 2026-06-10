@@ -341,10 +341,11 @@ def handle_product_product(method: str, args: List, kwargs: Dict) -> Any:
 
 def handle_mrp_bom(method: str, args: List, kwargs: Dict) -> Any:
     """Handle mrp.bom model calls"""
+    default_fields = ["id", "product_id", "product_tmpl_id", "product_qty", "bom_line_ids"]
     if method == "search_read":
         domain = args[0] if args else []
-        fields = kwargs.get("fields", ["id", "product_id", "product_tmpl_id", "product_qty", "bom_line_ids"])
-        
+        fields = kwargs.get("fields", default_fields)
+
         # Simple domain filtering
         filtered_boms = BOMS
         for condition in domain:
@@ -352,23 +353,41 @@ def handle_mrp_bom(method: str, args: List, kwargs: Dict) -> Any:
                 field, operator, value = condition
                 if field == "product_id" and operator == "=":
                     filtered_boms = [b for b in filtered_boms if b.get("product_id", [None])[0] == value]
-        
+
         # Return only requested fields
         result = []
         for bom in filtered_boms:
             item = {field: bom.get(field) for field in fields if field in bom}
             result.append(item)
-        
+
         return result
-    
+
+    if method == "read":
+        return _read_by_ids(BOMS, args, kwargs, default_fields)
+
     raise ValueError(f"Unknown method: {method}")
+
+def _read_by_ids(collection: List[Dict[str, Any]], args: List, kwargs: Dict,
+                 default_fields: List[str]) -> List[Dict[str, Any]]:
+    """Common implementation of Odoo's `read(ids, fields)` method."""
+    ids = args[0] if args else []
+    if isinstance(ids, int):
+        ids = [ids]
+    fields = kwargs.get("fields", default_fields)
+    filtered = [rec for rec in collection if rec.get("id") in ids]
+    return [
+        {field: rec.get(field) for field in fields if field in rec}
+        for rec in filtered
+    ]
+
 
 def handle_mrp_bom_line(method: str, args: List, kwargs: Dict) -> Any:
     """Handle mrp.bom.line model calls"""
+    default_fields = ["id", "bom_id", "product_id", "product_qty", "product_uom_id"]
     if method == "search_read":
         domain = args[0] if args else []
-        fields = kwargs.get("fields", ["id", "bom_id", "product_id", "product_qty", "product_uom_id"])
-        
+        fields = kwargs.get("fields", default_fields)
+
         # Simple domain filtering
         filtered_lines = BOM_LINES
         for condition in domain:
@@ -378,16 +397,20 @@ def handle_mrp_bom_line(method: str, args: List, kwargs: Dict) -> Any:
                     filtered_lines = [l for l in filtered_lines if l.get("bom_id", [None])[0] == value]
                 elif field == "id" and operator == "in":
                     filtered_lines = [l for l in filtered_lines if l.get("id") in value]
-        
+
         # Return only requested fields
         result = []
         for line in filtered_lines:
             item = {field: line.get(field) for field in fields if field in line}
             result.append(item)
-        
+
         return result
-    
+
+    if method == "read":
+        return _read_by_ids(BOM_LINES, args, kwargs, default_fields)
+
     raise ValueError(f"Unknown method: {method}")
+
 
 def handle_stock_quant(method: str, args: List, kwargs: Dict) -> Any:
     """Handle stock.quant model calls"""
