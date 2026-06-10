@@ -352,14 +352,29 @@ ros2 service call /hermes/warehouse/pick \
 
 | Evidence type | Result / link | Relevance |
 |---|---|---|
-| Demonstrator video | [TBD] | End-to-end use case |
-| Screenshots / diagrams | [TBD: Orion entity browser, RViz topic graph, Odoo dashboard — Sprint 1.] | Visual proof of the bridging |
-| Execution logs | [TBD: captured logs from a successful demo run.] | Reproducibility |
-| Metrics | [TBD: latency from Odoo MO to ROS 2 service request; success rate over N runs] | Performance evidence |
-| Impact on end user | [TBD: short summary from the production deployment notes.] | Industrial value |
-| Impact on tech provider (reuse potential) | The adapter is reusable in any ERP-driven mixed-robotics cell that uses Vulcanexus + FIWARE. Three concrete reuse paths: (i) swap `HanelSoapClient` for another vertical-lift vendor's interface (estimated ≈300 LOC); (ii) swap Odoo for a different ERP by reimplementing `OdooClient`; (iii) use it as a Vulcanexus tutorial showing how to embed a FIWARE bridge inside a ROS 2 process. | Exploitation potential |
+| Demonstrator video | [TBD] — see [`../media/video_link.md`](../media/video_link.md) for the acceptance criteria. | End-to-end real-cell run |
+| Architecture + sequence diagrams | Mermaid (renders inline on GitHub): [`media/architecture_diagram.md`](../media/architecture_diagram.md) + [`media/sequence_diagram.md`](../media/sequence_diagram.md). | Visual proof of the bridging |
+| **Fresh-clone reproducibility — captured CLI / API evidence** | [`media/screenshots/`](../media/screenshots/) — ten text logs captured 2026-06-10 from `git clone` → `cp .env.example .env` → `docker compose up -d` → demo flow walkthrough. Highlights: `04_adapter_startup.log` shows the ROS4HRI Intent publisher coming up on `/intents`; `05_intent_published.log` carries two `Published ROS4HRI Intent: START_ACTIVITY mo=1 project=demo-ctrl-1 source=erp/odoo bom_lines=4` lines (one per BOM-resolution run, with the corresponding Shortage / Reservation create lines immediately after); `07_shortage_entity.log` + `09_reservation_entity.log` show the resulting NGSI-LD entities. | Sprint 1.5 reproducibility ✅ |
+| Metrics | [`media/screenshots/08_metrics.log`](../media/screenshots/08_metrics.log) — adapter `/metrics` Prometheus output (per-NGSI-LD-operation timings, Odoo call timings, warehouse counters). | Performance / latency evidence |
+| Screenshots (UI) | Still TBD (Grafana dashboard, demonstrator cell photo, HoloLens AR UI, Odoo MO view) — captured during a live demo session. See [`../media/screenshots/README.md`](../media/screenshots/README.md). | Visual evidence |
+| Impact on end user | The adapter is the integration backbone of the Ampero / Olorin custom electrical-panel assembly demonstrator (HERMES TRL6-7): customer orders flow from Odoo → adapter → Orion-LD → Mission Controller → JAKA Pro 16 + Hänel ASRS + AGV, with HoloLens AR guidance for the operator's manual wiring step. Without the adapter, every reseller integration would need a hand-written Odoo / Hänel / FIWARE bridge per cell. | Industrial value |
+| Impact on tech provider (reuse potential) | The adapter is reusable in any ERP-driven mixed-robotics cell that uses Vulcanexus + FIWARE. Three concrete reuse paths: (i) swap `HanelHostComClient` / `HanelSoapClient` for another vertical-lift vendor's interface (≈300 LOC); (ii) swap Odoo for a different ERP by reimplementing `OdooClient`; (iii) use it as a Vulcanexus tutorial showing how to embed a FIWARE + ROS4HRI bridge inside a ROS 2 process. | Exploitation potential |
 
-[TBD: 1-paragraph impact story.]
+**Impact narrative.** The TRL6-7 demonstrator validates the
+"ERP-driven mixed-robotics cell" integration story end-to-end: a
+planner enters a manufacturing order in Odoo, the adapter resolves
+the BOM + reserves stock + bridges into the FIWARE digital twin
+(`Project` → `Reservation` or `Shortage`), the Mission Controller
+picks up the work via standard ROS 2 services and orchestrates the
+Hänel vertical lift + cobots, and the HoloLens AR app guides the
+operator through the manual wiring. The same composition is
+applicable wherever a vertical lift + a robotics cell + an ERP need
+to converge — the adapter's pluggable `WarehouseClient` ABC and
+isolated `OdooClient` make the reseller integration effort closer to
+a fortnight than a quarter. The ROS4HRI Intent stream (Sprint 0.4)
+opens a second reuse path: any ROS4HRI-aware behaviour controller
+can subscribe to `/intents` and react to the planner's
+`START_ACTIVITY` events without knowing anything about Odoo.
 
 ### 3.3.10 Openness, commercial boundary and limitations
 
