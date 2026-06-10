@@ -12,7 +12,7 @@ A **hybrid ROS2 + FastAPI adapter** that bridges **Odoo ERP**, **FIWARE Context 
 ## Key Features
 
 - **4-Protocol Hub**: Speaks DDS (ROS2/Vulcanexus), JSON-RPC (Odoo), NGSI-LD (FIWARE), and SOAP 1.1 (Hanel warehouse) from a single process
-- **ROS2 Services**: Exposes warehouse pick, stock consume/produce, and article push operations as ROS2 services over Fast-DDS
+- **ROS2 Services**: Exposes warehouse pick (request / status / cancel) and stock consume / produce operations as ROS2 services over Fast-DDS
 - **Warehouse Abstraction**: Pluggable backend — `HanelSoapClient` for production SOAP integration, `NullWarehouseClient` for dev/test (replaces WireMock)
 - **Real-time Project Processing**: Processes manufacturing projects from NGSI-LD notifications
 - **BOM Resolution**: Resolves Bills of Materials and checks component availability via Odoo
@@ -44,7 +44,7 @@ The adapter acts as the central hub — one process, four protocols:
           │   /hermes/warehouse/cancel    POST /orion/notify     │
           │   /hermes/stock/consume       POST /api/consume      │
           │   /hermes/stock/produce       POST /api/produce      │
-          │   /hermes/articles/push       GET  /admin/...        │
+          │                               GET  /admin/...        │
           │                                                     │
           │  Topics:                                            │
           │   /hermes/inventory_updates (pub)                   │
@@ -73,7 +73,7 @@ The adapter acts as the central hub — one process, four protocols:
 
 ### Key Components
 
-- **HermesAdapterNode** (`ros2_node.py`): ROS2 node with 6 service servers, 1 publisher, 1 subscriber — runs in a background thread alongside FastAPI
+- **HermesAdapterNode** (`ros2_node.py`): ROS2 node with 5 service servers, 3 publishers (inventory updates + tray state + diagnostics) and 1 subscriber (`/hermes/mission_state`), running in a background thread alongside FastAPI
 - **WarehouseClient** (`warehouse/`): Abstract interface with `HanelSoapClient` (zeep-based SOAP 1.1) and `NullWarehouseClient` (dev stub)
 - **WarehouseSyncWorker** (`workers/warehouse_sync.py`): Article bootstrap, inbound detection, inventory reconciliation
 - **Project Sync Worker**: Listens to Project requests, queries Odoo, creates Reservations/Shortages
@@ -187,14 +187,21 @@ See [.env.example](./.env.example) for complete configuration options.
 | `/hermes/warehouse/cancel` | `WarehousePickCancel` | Cancel pending pick order |
 | `/hermes/stock/consume` | `ConsumeStock` | Decrement stock after cobot pick |
 | `/hermes/stock/produce` | `ProduceStock` | Increment finished product stock |
-| `/hermes/articles/push` | `PushArticle` | Push article master data to warehouse |
+
+> **Note.** A `PushArticle` service was previously exposed at
+> `/hermes/articles/push`. It was removed during the HOST-COM cleanup
+> (the Hänel HOST-COM protocol does not implement article-master push;
+> the `.srv` file in `hermes_msgs` is retained for compatibility but
+> the adapter no longer creates the server).
 
 ### Topics
 
 | Topic | Type | Direction | Description |
 |-------|------|-----------|-------------|
 | `/hermes/inventory_updates` | `InventoryUpdate` | Published | Stock change events |
-| `/hermes/mission_state` | `MissionState` | Subscribed | Mission state → FIWARE sync |
+| `/hermes/warehouse/tray_state` | `Int16` (latched) | Published | Latched current-tray state from the Hänel HOST-COM client |
+| `/diagnostics` | `DiagnosticArray` | Published | Adapter health (warehouse / Odoo / Orion subsystems) |
+| `/hermes/mission_state` | `std_msgs/String` (JSON) | Subscribed | Mission state → FIWARE sync (absorbs the old ROS-FIWARE bridge) |
 
 ### Service Usage Examples
 
