@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "product_id": [2, "Schneider Relay 24V"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 10.0,
+    "reserved_quantity": 2.0
+  },
+  {
+    "id": 2,
+    "product_id": [3, "ABB Circuit Breaker 10A"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 15.0,
+    "reserved_quantity": 0.0
+  },
+  {
+    "id": 3,
+    "product_id": [4, "DIN Rail Terminal"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 50.0,
+    "reserved_quantity": 5.0
+  },
+  {
+    "id": 4,
+    "product_id": [5, "Wago Connector"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 2.0,
+    "reserved_quantity": 0.0
+  },
+  {
+    "id": 10,
+    "product_id": [11, "Siemens PLC S7-1200"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 5.0,
+    "reserved_quantity": 0.0
+  },
+  {
+    "id": 11,
+    "product_id": [12, "ABB MCB S202-C10"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 10.0,
+    "reserved_quantity": 0.0
+  },
+  {
+    "id": 12,
+    "product_id": [13, "Schneider Contactor"],
+    "location_id": [8, "WH/Stock"],
+    "quantity": 8.0,
+    "reserved_quantity": 0.0
+  }
+]
