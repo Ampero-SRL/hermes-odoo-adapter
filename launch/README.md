@@ -17,23 +17,23 @@ system.
 ## `hermes_odoo_adapter.launch.py`
 
 Native invocation (ROS 2 Humble / Vulcanexus already sourced, vendored
-`hermes_msgs` already built in your workspace):
+`hermes_msgs` already built in your workspace, **demo compose NOT
+running on the same host** — both would bind `:8080` and the same
+`ROS_DOMAIN_ID`):
 
 ```bash
 ros2 launch ./launch/hermes_odoo_adapter.launch.py
 ```
 
-Inside the demo Docker stack (`launch/` is copied into the image at
-`/app/launch/`):
-
-```bash
-docker compose -f docker/docker-compose.demo.yml exec adapter \
-    bash -lc '
-        source /opt/ros/humble/setup.bash &&
-        source /opt/hermes_ws/install/setup.bash &&
-        ros2 launch /app/launch/hermes_odoo_adapter.launch.py
-    '
-```
+> **Why no `docker compose exec` example?** The demo compose
+> (`docker/docker-compose.demo.yml`) already starts the adapter via
+> the Dockerfile `CMD` (`python -m hermes_odoo_adapter`). Running
+> `ros2 launch` inside the same container would try to start a
+> second copy that conflicts on port 8080 + ROS topic names.
+> `launch/` is copied to `/app/launch/` mainly so the file can be
+> inspected from inside the container; if you want to drive the
+> adapter via `ros2 launch` instead of the Dockerfile CMD, stop the
+> compose service first and re-run from a sourced ROS 2 shell.
 
 ### Launch arguments
 

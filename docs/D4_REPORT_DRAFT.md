@@ -159,7 +159,7 @@ Sprint 2):
 | Publisher | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | Health of warehouse / Odoo / Orion subsystems. |
 | Subscriber | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | Mission-state stream → patches FIWARE entities. |
 | Planned publisher | *(topic TBD: `/humans/intents` vs domain)* | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (see §3.3.5). |
-| Launch file | [`launch/hermes_odoo_adapter.launch.py`](../launch/hermes_odoo_adapter.launch.py) | `launch` | `ros2 launch hermes_odoo_adapter hermes_odoo_adapter.launch.py` — `ExecuteProcess` wrapper around `python -m hermes_odoo_adapter`. Launch arguments: `ros2_node_name` / `warehouse_backend` / `log_level` / `extra_env`. |
+| Launch file | [`launch/hermes_odoo_adapter.launch.py`](../launch/hermes_odoo_adapter.launch.py) | `launch` | `ros2 launch ./launch/hermes_odoo_adapter.launch.py` (path-based — adapter is Poetry-only, not an ament package). `ExecuteProcess` wrapper around `python -m hermes_odoo_adapter`. Launch arguments: `ros2_node_name` / `warehouse_backend` / `log_level`. |
 
 **FIWARE / NGSI-LD interface:**
 

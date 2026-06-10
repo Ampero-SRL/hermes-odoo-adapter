@@ -150,7 +150,7 @@ poetry run python -m hermes_odoo_adapter.main
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WAREHOUSE_BACKEND` | Backend type: `hanel_soap` or `null` | `null` |
+| `WAREHOUSE_BACKEND` | Backend type: `hanel_hostcom` (raw TCP HOST-COM, production), `hanel_soap` (legacy HOST-WEB SOAP 1.1), or `null` (dev / hello-world) | `null` |
 | `ASRS_SOAP_URL` | Hanel SOAP WSDL URL | `None` |
 | `ASRS_SOAP_TIMEOUT` | SOAP request timeout (seconds) | `10` |
 | `ASRS_JOB_POLL_INTERVAL` | Job status polling interval (seconds) | `2.0` |

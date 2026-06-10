@@ -8,12 +8,18 @@ the Docker entrypoint does (`python -m hermes_odoo_adapter`).
 Because the adapter isn't installed as an ament package, **invoke the
 launch file by path**, not by package name:
 
-    # Native (ROS 2 Humble + Vulcanexus already sourced):
+    # Native (ROS 2 Humble + Vulcanexus already sourced; the demo
+    # docker-compose stack should NOT be running on the same host —
+    # the compose adapter already binds :8080 and listens on the same
+    # ROS_DOMAIN_ID, so a second `python -m hermes_odoo_adapter`
+    # process would conflict).
     ros2 launch ./launch/hermes_odoo_adapter.launch.py
 
-    # Inside the demo Docker image (launch/ is copied to /app/launch/):
-    docker compose exec adapter \\
-        ros2 launch /app/launch/hermes_odoo_adapter.launch.py
+The Dockerfile copies `launch/` into the image at `/app/launch/` so
+the same file can be inspected / replayed from inside the running
+container, but the demo compose already starts the adapter — see
+`launch/README.md` for the right way to use it as an alternative
+entrypoint.
 
 Launch arguments:
 
