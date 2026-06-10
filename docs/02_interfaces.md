@@ -61,11 +61,13 @@ ROS4HRI intent topic name) is on the Sprint 1 backlog.
 
 ### Launch
 
-Today the adapter starts via `python -m hermes_odoo_adapter` (or under
-Docker via `docker compose -f docker/docker-compose.demo.yml up`). A
-ROS 2 launch wrapper (`launch/hermes_odoo_adapter.launch.py`) is on the
-Sprint 1 backlog so `ros2 launch hermes_odoo_adapter …` becomes a valid
-entrypoint.
+The adapter has three equivalent entrypoints:
+
+| Entrypoint | When to use |
+|---|---|
+| `python -m hermes_odoo_adapter` | Local dev (host has ROS 2 + Vulcanexus + vendored `hermes_msgs` built). |
+| `docker compose -f docker/docker-compose.demo.yml up` | Fresh-clone hello world / basic demo. |
+| `ros2 launch hermes_odoo_adapter hermes_odoo_adapter.launch.py` | Standard ROS 2 launch system (declares `ros2_node_name` / `warehouse_backend` / `log_level` / `extra_env` arguments). See [`../launch/`](../launch/). |
 
 ### Service usage examples
 
