@@ -97,11 +97,11 @@ hermes-odoo-adapter/
   docs/
     D4_PLAN.md               # internal task plan
     D4_REPORT_DRAFT.md       # this document
-    [TBD] 01_arise_context.md
-    [TBD] 02_interfaces.md
-    [TBD] 03_installation_and_hello_world.md
-    [TBD] 04_basic_demo_how_to_use.md
-    [TBD] 05_role_in_demonstrator.md
+    01_arise_context.md
+    02_interfaces.md
+    03_installation_and_hello_world.md
+    04_basic_demo_how_to_use.md
+    05_role_in_demonstrator.md
   ros2_ws/
     deps.repos               # ROS 2 dependency manifest (hri_actions_msgs)
     src/hermes_msgs/         # vendored from hermes_main (see VENDORED_FROM.md)
@@ -114,9 +114,16 @@ hermes-odoo-adapter/
     warehouse/, utils/
   tests/
     unit/, integration/
-  [TBD] examples/
-  [TBD] launch/
-  [TBD] media/
+  examples/
+    payloads/, curl/, ros2/  # runnable demo flows (see examples/README.md)
+  launch/
+    hermes_odoo_adapter.launch.py  # `ros2 launch` ExecuteProcess wrapper
+  media/
+    architecture_diagram.md  # Mermaid system-context diagram
+    sequence_diagram.md      # Mermaid sequence diagrams (Shortage / Reservation / pick)
+    video_link.md            # demonstrator video URL (TBD)
+    screenshots/             # PNG inventory + shot list (TBD captures)
+  project_mapping.json        # Project code -> Odoo product mapping (shipped in the image)
 ```
 
 ### 3.2.5 README content — already present
@@ -152,14 +159,14 @@ Sprint 2):
 | Publisher | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | Health of warehouse / Odoo / Orion subsystems. |
 | Subscriber | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | Mission-state stream → patches FIWARE entities. |
 | Planned publisher | *(topic TBD: `/humans/intents` vs domain)* | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (see §3.3.5). |
-| Launch file | [TBD: `launch/hermes_odoo_adapter.launch.py`] | `launch` | One-shot `ros2 launch` entrypoint; pending creation in Sprint 1. |
+| Launch file | [`launch/hermes_odoo_adapter.launch.py`](../launch/hermes_odoo_adapter.launch.py) | `launch` | `ros2 launch hermes_odoo_adapter hermes_odoo_adapter.launch.py` — `ExecuteProcess` wrapper around `python -m hermes_odoo_adapter`. Launch arguments: `ros2_node_name` / `warehouse_backend` / `log_level` / `extra_env`. |
 
 **FIWARE / NGSI-LD interface:**
 
 - `@context`: [`contracts/context/context.jsonld`](../contracts/context/context.jsonld)
 - Entity types managed: `Project`, `Reservation`, `Shortage`, `InventoryItem` (schemas in [`contracts/schemas/`](../contracts/schemas/))
 - Endpoint: Orion-LD HTTP REST (configurable via env `ORION_URL`; default `http://orion-ld:1026`).
-- Payload examples: [TBD: examples/payloads/*.json — Sprint 1.]
+- Payload examples: [`examples/payloads/{project,reservation,inventory_item,shortage}.json`](../examples/payloads/) — minimal NGSI-LD payloads matching the contracts schemas.
 - Notification subscriptions: adapter exposes `POST /orion/notifications` to receive Orion-LD subscriptions on `Project` requests.
 
 **DDS NGSI-LD enabler:**
@@ -169,7 +176,7 @@ Sprint 2):
 | DDS Enabler used | No |
 | Justification | In-process bridging — see [`config/README.md`](../config/README.md). |
 | Topic ↔ entity mapping | [`config/README.md`](../config/README.md) — canonical table. |
-| Test command / script | [TBD: examples/curl/ + examples/ros2/ — Sprint 1.] |
+| Test command / script | [`examples/curl/`](../examples/curl/) + [`examples/ros2/`](../examples/ros2/) — runnable HTTP + ROS 2 scripts that exercise the documented mapping end-to-end against the demo compose. |
 | Known limitations | Custom QoS profile not yet shipped; defaults inherited from Vulcanexus base. |
 
 **ROS4HRI / ROS4RI:** see §3.3.5 below — **Used** (Intent publisher).
@@ -211,9 +218,9 @@ ros2 service call /hermes/warehouse/pick \
 - [ ] ROS4HRI/ROS4RI usage documented. *(Sprint 0.4 — Intent publisher + §3.3.5 table)*
 - [x] Installation instructions list software, hardware and simulation dependencies separately.
 - [ ] Hello world can be executed using the submitted release/tag. *(Sprint 1.5)*
-- [ ] Basic demo has commands, expected outputs and visual evidence. *(Sprint 1)*
-- [ ] Role in the TRL6-7 demonstrator is documented. *(Sprint 1, `docs/05_role_in_demonstrator.md`)*
-- [ ] Video link and screenshots are available. *(Sprint 1 — see §3.4.2)*
+- [x] Basic demo has commands, expected outputs and visual evidence. *([`docs/04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md) + the Mermaid diagrams in [`media/`](../media/); per-stage screenshots still TBD.)*
+- [x] Role in the TRL6-7 demonstrator is documented. *([`docs/05_role_in_demonstrator.md`](05_role_in_demonstrator.md))*
+- [ ] Video link and screenshots are available. *(Video URL TBD — see [`media/video_link.md`](../media/video_link.md); screenshot shot list at [`media/screenshots/README.md`](../media/screenshots/README.md).)*
 - [x] Known limitations and proprietary boundaries are explicit *(in §3.2.2 and §3.3.10)*.
 - [x] Maintainer/contact information is included *(in §3.2.1 / §3.2.2)*.
 
@@ -363,7 +370,7 @@ ros2 service call /hermes/warehouse/pick \
 | Technical limitations | Currently single-tenant (one Odoo + one Orion + one Hänel per adapter instance); no built-in retry of arbitrary NGSI-LD calls beyond the existing `tenacity` decorators; the ROS4HRI Intent publisher is planned for Sprint 0.4 (mapping is locked, code not yet in `ros2_node.py`); once it lands it will be unconsumed by default (no downstream node listens yet). |
 | Hardware limitations | Tested only against Hänel MP 12N + JAKA Pro 16 + Vulcanexus Humble. Other vertical lifts require a `WarehouseClient` implementation. |
 | Untested cases | Adapter under DDS-cross-network conditions (Discovery Server), Odoo 18, Orion-LD 1.5+ — all expected to work but not validated. |
-| Future work | Sprint 0.4 — ROS4HRI Intent publisher implementation. Sprint 1 — `docs/` + `examples/` + `launch/` + `media/`. Sprint 1.5 — fresh-clone reproducibility validation. Custom QoS profile for cross-network deployments. Multi-tenant configuration. |
+| Future work | Sprint 0.4 — ROS4HRI Intent publisher implementation. Sprint 1.5 — fresh-machine reproducibility validation (the in-repo Docker build now resolves all dependencies; final acceptance is the clean-clone run). Demonstrator video + the eight per-stage screenshots (see `media/screenshots/README.md`). Custom QoS profile for cross-network deployments. Multi-tenant configuration. |
 | Ethical / safety / privacy considerations | The adapter does not collect operator biometrics, identity, audio or video. The NGSI-LD entities it manages contain customer order ids (BOM line ids) and operator station ids; these are pseudonymous business identifiers, not personal data. Production deployments should still ensure the Orion-LD broker and Odoo instance enforce their own access controls. [TBD: confirm against the project-specific ethics report.] |
 
 ### 3.3.11 Self-assessment for ARISE ecosystem visibility
@@ -391,9 +398,9 @@ ros2 service call /hermes/warehouse/pick \
 - [x] Open implementation scope clearly described.
 - [x] README and repository structure described.
 - [x] ROS 2/Vulcanexus, FIWARE/NGSI-LD, DDS enabler (N/A justified) and ROS4HRI evidence summarised.
-- [ ] Installation, hello world and basic demo evidence included. *(Sprint 1 — needs `docs/03_*.md` + `docs/04_*.md`.)*
+- [x] Installation, hello world and basic demo evidence included. *([`docs/03_installation_and_hello_world.md`](03_installation_and_hello_world.md) + [`docs/04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md) + [`examples/`](../examples/) + [`launch/`](../launch/) + [`media/`](../media/).)*
 - [x] TRL6-7 demonstrator role explained (placeholders for video URL + component-level mapping).
-- [ ] Video and visual evidence linked. *(Sprint 1.)*
+- [ ] Video and visual evidence linked. *Mermaid architecture + sequence diagrams in [`media/`](../media/) are linked from the relevant sections; the demonstrator video URL and the eight per-stage screenshots are still TBD ([`media/video_link.md`](../media/video_link.md) + [`media/screenshots/README.md`](../media/screenshots/README.md)).*
 - [x] Limitations, proprietary boundaries and future work stated.
 - [ ] Annexes and previous deliverables linked. *(see §3.4 below — TBD.)*
 
@@ -422,7 +429,8 @@ ros2 service call /hermes/warehouse/pick \
 | Evidence item | Link / description | What it demonstrates |
 |---|---|---|
 | Demonstrator video | [TBD] | End-to-end Odoo → ROS 2 → robot sequence |
-| Architecture diagram | [TBD — `media/architecture_diagram.png`, Sprint 1.] | System context + adapter position |
+| Architecture diagram | [`media/architecture_diagram.md`](../media/architecture_diagram.md) — Mermaid system-context diagram (renders inline on GitHub). | System context + adapter position |
+| Sequence diagrams | [`media/sequence_diagram.md`](../media/sequence_diagram.md) — Mermaid diagrams for Project → Shortage, top-up → Reservation, and Mission Controller → ConsumeStock flows. | Inputs / outputs / interface logic |
 | Sequence / data-flow diagram | `hermes_main/docs/HERMES_SEQUENCE_DIAGRAMS.md` (to copy or link) | Adapter inputs / outputs |
 | Screenshots | [TBD — Orion entity browser, ROS 2 topic graph, Odoo dashboard, Grafana panel, Sprint 1.] | Operational behaviour |
 | Metrics / test results | [TBD — capture from a clean run.] | Latency / success rate |

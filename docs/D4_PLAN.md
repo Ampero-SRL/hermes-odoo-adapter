@@ -103,11 +103,11 @@ Citations are paths relative to the `hermes_odoo_adapter/` repo unless noted.
 | 2 | Open base implementation | ✅ | `src/hermes_odoo_adapter/` (Python) |
 | 3 | LICENSE | ✅ | `LICENSE` (Apache-2.0 by size) + `NOTICE` |
 | 4 | README complete | ⚠️ | `README.md` covers arch / ROS2 / HTTP API / NGSI-LD; **missing**: ARISE connection narrative, target-platforms table, missions/tasks mapping, off-the-shelf capabilities table, limitations, maintainer block, demo vs. hello-world split |
-| 5 | `docs/` folder | ❌ | Only `docker/` exists; create the 5 D4-suggested docs (see §3) |
-| 6 | `examples/` folder | ❌ | None — D4 wants minimal payloads / bag files / mock publishers |
-| 7 | `launch/` folder | ❌ | No ROS 2 launch files; the adapter starts via `python -m hermes_odoo_adapter` |
-| 8 | `config/` folder | ⚠️ | Settings via `.env` / `.env.example`; no DDS enabler config |
-| 9 | `media/` folder | ❌ | No architecture diagram / screenshots / video link in repo |
+| 5 | `docs/` folder | ✅ | Five D4-recommended pages (`docs/01_arise_context.md` → `docs/05_role_in_demonstrator.md`) plus the D4 plan + report draft and an interfaces / install / demo set |
+| 6 | `examples/` folder | ✅ | `examples/{payloads,curl,ros2}/` with runnable scripts driving the demo compose; payloads use the real seeded mock SKUs (`SCH-REL-24V`, `ABB-MCB-10A`, …) and the `DEMO-CTRL` project from `project_mapping.json` |
+| 7 | `launch/` folder | ✅ | `launch/hermes_odoo_adapter.launch.py` — thin `ExecuteProcess` wrapper so `ros2 launch hermes_odoo_adapter hermes_odoo_adapter.launch.py` works alongside the existing `python -m` / Docker entrypoints. Declares `ros2_node_name` / `warehouse_backend` / `log_level` / `extra_env`. See `launch/README.md` |
+| 8 | `config/` folder | ⚠️ | Settings via `.env` / `.env.example`; `config/README.md` documents the FIWARE DDS Enabler as N/A with the canonical topic↔entity mapping (no enabler config file shipped) |
+| 9 | `media/` folder | ⚠️ | Mermaid `architecture_diagram.md` + `sequence_diagram.md` are in place + the `video_link.md` + `screenshots/README.md` shot-list scaffold. **Pending**: the actual demonstrator video URL and the eight per-stage screenshots — captured during the live demo, tracked in Sprint 1 backlog |
 | 10 | `docker/` or `docker-compose.yml` | ✅ | `Dockerfile`, `docker/docker-compose.full.yml`, `docker/docker-compose.demo.yml` |
 | 11 | Tests | ✅ | `tests/unit/`, `tests/integration/`, `pytest.ini` |
 
