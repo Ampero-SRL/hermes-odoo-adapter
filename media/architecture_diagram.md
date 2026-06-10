@@ -18,7 +18,7 @@ flowchart LR
     subgraph Adapter["HERMES Odoo Adapter (this repo)"]
         direction TB
         FAPI["FastAPI HTTP face<br/>:8080 — healthz/readyz/metrics<br/>POST /orion/notifications<br/>POST /api/consume, produce<br/>admin/*"]
-        RNODE["rclpy node 'hermes_adapter'<br/>5 srv + 3 pub + 1 sub"]
+        RNODE["rclpy node 'hermes_adapter'<br/>5 srv + 4 pub (incl. /intents) + 1 sub"]
         OdooClient["OdooClient<br/>(JSON-RPC)"]
         OrionClient["OrionClient<br/>(NGSI-LD)"]
         WClient["WarehouseClient ABC<br/>NullWarehouseClient (default in demo)<br/>HanelHostComClient (TCP HOST-COM, production)<br/>HanelSoapClient (HOST-WEB SOAP, legacy)"]

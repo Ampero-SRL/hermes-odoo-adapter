@@ -86,9 +86,9 @@ End-to-end run (single project, one BOM line):
 | **Odoo integration** | `OdooClient` + JSON-RPC patterns + the BOM-resolution worker | The Odoo addon and customer BOM data |
 | **Orion-LD digital twin** | `OrionClient` + the four entity schemas + the `@context` + subscription handler | Operator dashboard configuration |
 | **Hänel integration** | `WarehouseClient` ABC + `HanelHostComClient` (open; raw TCP HOST-COM telegrams, default) + `HanelSoapClient` (open; legacy HOST-WEB SOAP 1.1) + the `NullWarehouseClient` mock | Live Hänel endpoint + credentials |
-| **ROS 2 / DDS face** | `HermesAdapterNode` — 5 services + 3 publishers + 1 subscriber | The Mission Controller that consumes them (lives in `hermes_main/`) |
+| **ROS 2 / DDS face** | `HermesAdapterNode` — 5 services + 4 publishers (`/hermes/inventory_updates`, `/hermes/warehouse/tray_state`, `/diagnostics`, `/intents`) + 1 subscriber | The Mission Controller that consumes them (lives in `hermes_main/`) |
 | **NGSI-LD ↔ DDS bridging** | In-process bridging in `ros2_node.py` ↔ `orion_client.py`; canonical mapping in [`config/README.md`](../config/README.md) | — |
-| **ROS4HRI Intent publishing** | Planner-derived MO intent published from the adapter (Sprint 0.4); operator intents published from upstream nodes near the source (`hermes_main/`) | The HoloLens AR-button → Intent companion node lives in `hermes_main/hololens_api/` |
+| **ROS4HRI Intent publishing** | **Implemented in Sprint 0.4** — planner-derived MO intent published from the adapter on `/intents`. Operator-side intents stay in `hermes_main/` companions. | The HoloLens AR-button → Intent companion node still lives in `hermes_main/hololens_api/` (out of this repo's scope). |
 | Mission Controller / MoveIt 2 / cuMotion | Not part of the open module | Internal to `hermes_main/` |
 | Vision detection (Jetson) | Not part of the open module | Internal to `hermes_asrs_station/` |
 | HoloLens AR app | Not part of the open module | `ARISE-AR-APP/` + `panelserver/` |
@@ -118,12 +118,12 @@ research artefact, not the full TRL6-7 industrial validation.
 
 | Evidence | Status | Link |
 |---|---|---|
-| TRL6-7 demonstrator video | [TBD] | (to be captured / linked before D4 submission) |
-| Architecture diagram | [TBD] — `media/architecture_diagram.png`, Sprint 1 backlog | — |
-| Sequence diagrams | Existing in `hermes_main/docs/HERMES_SEQUENCE_DIAGRAMS.md` | — (to extract into `media/` for D4) |
-| Execution logs | Captured during demonstrator runs (internal) | [TBD] |
-| Latency metrics | Prometheus `/metrics` includes per-NGSI-LD-operation timing + Odoo-call timing | `bash examples/curl/01_healthz.sh` and check `/metrics` |
-| End-user feedback | Collected during the Stage 3 demonstrator | [TBD] |
+| TRL6-7 demonstrator video | Reuse the D3 deliverable video (per D4 §2 "incremental contribution" — see [`../media/video_link.md`](../media/video_link.md)) | URL pasted into [`D4_REPORT_DRAFT.md`](D4_REPORT_DRAFT.md) §3.1 / §3.4.1 by the team |
+| Architecture diagram | ✅ [`../media/architecture_diagram.md`](../media/architecture_diagram.md) (Mermaid, renders inline on GitHub) | — |
+| Sequence diagrams | ✅ [`../media/sequence_diagram.md`](../media/sequence_diagram.md) — three Mermaid sequence diagrams covering Project → Shortage, top-up → Reservation, and Mission Controller → ConsumeStock | — |
+| Execution logs | ✅ [`../media/screenshots/01-09_*.log`](../media/screenshots/) — captured from a fresh clone Sprint 1.5 run | The Sprint 0.4 Intent publishing is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log) |
+| Latency metrics | ✅ Captured at [`../media/screenshots/08_metrics.log`](../media/screenshots/08_metrics.log) (Prometheus output) + [`../media/screenshots/11_grafana_system_health.png`](../media/screenshots/11_grafana_system_health.png) (Grafana live render) | — |
+| End-user feedback | TBD — team-supplied testimonial from the Ampero / Olorin production deployment | Pasted into `D4_REPORT_DRAFT.md` §3.3.9 |
 
 The TBD items are tracked in [`D4_PLAN.md`](D4_PLAN.md) Sprint 1 + the
 mentor-Q list at the bottom of that doc.

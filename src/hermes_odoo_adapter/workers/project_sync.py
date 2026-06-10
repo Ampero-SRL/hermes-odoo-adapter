@@ -48,7 +48,7 @@ class ProjectSyncWorker:
     def _publish_planner_intent(
         self,
         *,
-        mo_id: str,
+        bom_id: str,
         project_id: str,
         bom_lines: List[Dict[str, Any]],
     ) -> None:
@@ -57,7 +57,7 @@ class ProjectSyncWorker:
             return
         try:
             self._intent_publisher(
-                mo_id=mo_id,
+                bom_id=bom_id,
                 project_id=project_id,
                 bom_lines=bom_lines,
                 source="erp/odoo",
@@ -217,7 +217,7 @@ class ProjectSyncWorker:
             # adapter ingests the order. The publisher is a no-op if
             # ROS 2 / hri_actions_msgs are unavailable.
             self._publish_planner_intent(
-                mo_id=str(bom.get("id", "")),
+                bom_id=str(bom.get("id", "")),
                 project_id=project_id,
                 bom_lines=[
                     {
