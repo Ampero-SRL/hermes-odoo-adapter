@@ -1,0 +1,90 @@
+<odoo>
+    <record id="product_ctrl_panel" model="product.template">
+        <field name="name">Industrial Control Panel A1</field>
+        <field name="default_code">CTRL-PANEL-A1</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_finished"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_led_strip" model="product.template">
+        <field name="name">LED Strip 24V 1m</field>
+        <field name="default_code">LED-STRIP-24V-1M</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_bracket" model="product.template">
+        <field name="name">Mounting Bracket Steel</field>
+        <field name="default_code">BRACKET-STEEL-001</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_pcb" model="product.template">
+        <field name="name">Control PCB Rev2.1</field>
+        <field name="default_code">PCB-CTRL-REV21</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_enclosure" model="product.template">
+        <field name="name">Enclosure IP65 300x200x120</field>
+        <field name="default_code">ENCLOSURE-IP65-300</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_psu" model="product.template">
+        <field name="name">Power Supply 24VDC 5A</field>
+        <field name="default_code">PSU-24VDC-5A</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_cable" model="product.template">
+        <field name="name">Cable Assembly 2m</field>
+        <field name="default_code">CABLE-ASSY-2M</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_screws" model="product.template">
+        <field name="name">Screws M4x12 DIN912</field>
+        <field name="default_code">SCREW-M4X12-DIN912</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_relay" model="product.template">
+        <field name="name">Safety Relay 24VDC</field>
+        <field name="default_code">RELAY-SAFETY-24V</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_estop" model="product.template">
+        <field name="name">Emergency Stop Button Red</field>
+        <field name="default_code">ESTOP-BTN-RED</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+    <record id="product_tft" model="product.template">
+        <field name="name">Display TFT 7inch</field>
+        <field name="default_code">TFT-DISPLAY-7IN</field>
+        <field name="detailed_type">product</field>
+        <field name="categ_id" ref="hermes_electrical_seed.cat_hermes_components"/>
+        <field name="uom_id" ref="uom.product_uom_unit"/>
+        <field name="uom_po_id" ref="uom.product_uom_unit"/>
+    </record>
+</odoo>

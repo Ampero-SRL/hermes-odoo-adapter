@@ -68,7 +68,16 @@ Thumbs.db
 
 # Project specific
 logs/
+# Generic data/ is gitignored to catch runtime / state directories,
+# but the Odoo mock + Odoo addons ship seed data that MUST be tracked
+# so the demo compose builds from a fresh clone (D4 reproducibility).
 data/
+!docker/odoo-mock/data/
+!docker/odoo-mock/data/**
+!docker/odoo-addons/**/data/
+!docker/odoo-addons/**/data/**
+!docker/odoo/custom_addons/**/data/
+!docker/odoo/custom_addons/**/data/**
 *.db
 
 # Local configuration overrides

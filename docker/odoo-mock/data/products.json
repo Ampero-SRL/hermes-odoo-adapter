@@ -1,0 +1,65 @@
+[
+  {
+    "id": 1,
+    "name": "Control Panel A1",
+    "default_code": "CTRL-PANEL-A1",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 2,
+    "name": "Schneider Relay 24V",
+    "default_code": "SCH-REL-24V",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 3,
+    "name": "ABB Circuit Breaker 10A",
+    "default_code": "ABB-MCB-10A",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 4,
+    "name": "DIN Rail Terminal",
+    "default_code": "DIN-TERM-2.5",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 5,
+    "name": "Wago Connector",
+    "default_code": "WAGO-221-412",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 10,
+    "name": "ARISE XR Panel - Project1",
+    "default_code": "Project1",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 11,
+    "name": "Siemens PLC S7-1200",
+    "default_code": "SIEMENS-PLC-S7-1200",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 12,
+    "name": "ABB MCB S202-C10",
+    "default_code": "ABB-MCB-S202-C10",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  },
+  {
+    "id": 13,
+    "name": "Schneider Contactor",
+    "default_code": "SCHNEIDER-CONTACTOR",
+    "uom_id": [1, "Unit"],
+    "type": "product"
+  }
+]

@@ -1,0 +1,16 @@
+[
+  {
+    "id": 1,
+    "product_id": [1, "Control Panel A1"],
+    "product_tmpl_id": [1, "Control Panel A1"],
+    "product_qty": 1.0,
+    "bom_line_ids": [1, 2, 3, 4]
+  },
+  {
+    "id": 2,
+    "product_id": [10, "ARISE XR Panel - Project1"],
+    "product_tmpl_id": [10, "ARISE XR Panel - Project1"],
+    "product_qty": 1.0,
+    "bom_line_ids": [10, 11, 12]
+  }
+]

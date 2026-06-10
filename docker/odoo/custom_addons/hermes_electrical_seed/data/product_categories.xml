@@ -1,0 +1,10 @@
+<odoo>
+    <record id="cat_hermes_components" model="product.category">
+        <field name="name">HERMES Electrical - Components</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+    <record id="cat_hermes_finished" model="product.category">
+        <field name="name">HERMES Electrical - Finished Goods</field>
+        <field name="parent_id" eval="False"/>
+    </record>
+</odoo>
