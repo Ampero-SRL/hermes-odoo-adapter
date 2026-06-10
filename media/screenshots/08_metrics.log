@@ -1,0 +1,43 @@
+# Prometheus metrics — captured 2026-06-10
+
+$ curl -s http://localhost:8080/metrics | grep -E 'hermes|ngsi|odoo|warehouse' | head -40
+hermes_odoo_adapter_info_info{service="hermes_odoo_adapter",version="0.1.0"} 1.0
+hermes_odoo_adapter_http_requests_total{endpoint="/healthz",method="GET",status_code="200"} 4.0
+hermes_odoo_adapter_http_requests_total{endpoint="/readyz",method="GET",status_code="200"} 1.0
+hermes_odoo_adapter_http_requests_created{endpoint="/healthz",method="GET",status_code="200"} 1.7811079842069519e+09
+hermes_odoo_adapter_http_requests_created{endpoint="/readyz",method="GET",status_code="200"} 1.781108014529787e+09
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.005",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.01",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.025",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.05",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.075",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.1",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.25",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.5",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="0.75",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="1.0",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="2.5",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="5.0",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="7.5",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="10.0",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/healthz",le="+Inf",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_count{endpoint="/healthz",method="GET"} 4.0
+hermes_odoo_adapter_http_request_duration_seconds_sum{endpoint="/healthz",method="GET"} 0.0013957023620605469
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.005",method="GET"} 0.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.01",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.025",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.05",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.075",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.1",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.25",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.5",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="0.75",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="1.0",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="2.5",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="5.0",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="7.5",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="10.0",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_bucket{endpoint="/readyz",le="+Inf",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_count{endpoint="/readyz",method="GET"} 1.0
+hermes_odoo_adapter_http_request_duration_seconds_sum{endpoint="/readyz",method="GET"} 0.009287118911743164
+hermes_odoo_adapter_http_request_duration_seconds_created{endpoint="/healthz",method="GET"} 1.7811079842069194e+09

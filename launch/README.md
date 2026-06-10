@@ -9,10 +9,19 @@ the same command the Docker entrypoint runs — so a user who has the
 adapter source tree can drive it through the standard ROS 2 launch
 system.
 
-> **Invoke by path, not by package name.** Because the adapter isn't
-> installed as an ament package, `ros2 launch hermes_odoo_adapter
-> hermes_odoo_adapter.launch.py` won't resolve. Use the path-based
-> form below.
+> **Two invocation forms** (pick whichever fits your workflow):
+>
+> 1. **Path-based** (no extra ament install needed): `ros2 launch
+>    ./launch/hermes_odoo_adapter.launch.py`. Works straight from the
+>    repo root.
+> 2. **Package-name based** (after a colcon build of the small
+>    `hermes_odoo_adapter_launch` ament wrapper at
+>    [`../ros2_ws/src/hermes_odoo_adapter_launch/`](../ros2_ws/src/hermes_odoo_adapter_launch/)):
+>    `ros2 launch hermes_odoo_adapter_launch hermes_odoo_adapter.launch.py`.
+>    The Dockerfile builds the wrapper automatically; for a native
+>    install, run `cd ros2_ws && colcon build --packages-select
+>    hermes_odoo_adapter_launch hri_actions_msgs hermes_msgs && source
+>    install/setup.bash` first.
 
 ## `hermes_odoo_adapter.launch.py`
 

@@ -16,6 +16,18 @@ if [ -f "$INIT_FLAG" ]; then
     exit 0
 fi
 
+# Demo / hello-world path: when the adapter is pointed at the in-tree
+# odoo-mock (docker/odoo-mock/), the products / BOMs / stock are baked
+# into docker/odoo-mock/data/*.json — no seeding needed, and the mock
+# does not implement /web/database/selector or xmlrpc. Skip the
+# initialization cleanly so a fresh reviewer's adapter logs aren't
+# noisy with readiness-poll failures.
+if [[ "$ODOO_BASE_URL" == *"odoo-mock"* ]] || [[ "${ODOO_INIT_SKIP:-0}" == "1" ]]; then
+    echo "✓ Odoo mock detected — skipping HERMES Odoo seeding"
+    touch "$INIT_FLAG"
+    exit 0
+fi
+
 echo "🔄 Initializing HERMES Odoo environment..."
 
 # Wait for Odoo to be ready

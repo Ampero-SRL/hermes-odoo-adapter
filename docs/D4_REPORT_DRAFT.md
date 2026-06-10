@@ -158,7 +158,7 @@ Sprint 2):
 | Publisher (latched) | `/hermes/warehouse/tray_state` | `std_msgs/Int16` | Current-tray state from Hänel HOST-COM. |
 | Publisher | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | Health of warehouse / Odoo / Orion subsystems. |
 | Subscriber | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | Mission-state stream → patches FIWARE entities. |
-| Planned publisher | *(topic TBD: `/humans/intents` vs domain)* | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (see §3.3.5). |
+| Publisher | `/intents` | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`). See §3.3.5. |
 | Launch file | [`launch/hermes_odoo_adapter.launch.py`](../launch/hermes_odoo_adapter.launch.py) | `launch` | `ros2 launch ./launch/hermes_odoo_adapter.launch.py` (path-based — adapter is Poetry-only, not an ament package). `ExecuteProcess` wrapper around `python -m hermes_odoo_adapter`. Launch arguments: `ros2_node_name` / `warehouse_backend` / `log_level`. |
 
 **FIWARE / NGSI-LD interface:**
@@ -283,7 +283,7 @@ ros2 service call /hermes/warehouse/pick \
 | Decrement / increment stock after pick / produce | `hermes_msgs/srv/{ConsumeStock,ProduceStock}` | Odoo stock move + NGSI-LD `InventoryItem.quantity` update + `/hermes/inventory_updates` event | Implemented |
 | Bridge Mission Controller state into FIWARE | `std_msgs/String` JSON on `/hermes/mission_state` | NGSI-LD entity patches | Implemented |
 | Continuous Odoo ↔ FIWARE inventory sync | Odoo stock state | NGSI-LD `InventoryItem` updates | Implemented |
-| Publish operator / planner intents (ROS4HRI) | Odoo MO creation event (planner intent); HoloLens UI actions (operator intent, via companion node) | `hri_actions_msgs/Intent` on `/humans/intents` | **Planned (Sprint 0.4)** |
+| Publish planner intents (ROS4HRI) — operator-side intents are published from companion nodes in `hermes_main` | Odoo MO ingestion (planner intent) | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY`, `source=erp/odoo`) | **Implemented (Sprint 0.4)** |
 
 ### 3.3.4 Off-the-shelf capabilities
 
@@ -294,7 +294,7 @@ ros2 service call /hermes/warehouse/pick \
 | BOM resolution + shortage detection | NGSI-LD `Project` request | `Reservation` + `Shortage` entities | NGSI-LD | Implemented |
 | Inventory streaming | (background worker) | `/hermes/inventory_updates` topic + NGSI-LD `InventoryItem` updates | DDS / NGSI-LD | Implemented |
 | Mission-state to FIWARE bridge | DDS subscription | NGSI-LD entity patches | DDS / NGSI-LD | Implemented |
-| Operator / planner ROS4HRI Intent publishing | Odoo MO event / AR-operator actions | `hri_actions_msgs/Intent` on `/humans/intents` | DDS (ROS4HRI) | Planned (Sprint 0.4) |
+| Planner ROS4HRI Intent publishing (operator intents come from companion nodes in `hermes_main`) | Odoo MO ingestion | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY`, `source=erp/odoo`) | DDS (ROS4HRI) | Implemented (Sprint 0.4) |
 
 ### 3.3.5 Interoperability evidence
 
@@ -352,14 +352,29 @@ ros2 service call /hermes/warehouse/pick \
 
 | Evidence type | Result / link | Relevance |
 |---|---|---|
-| Demonstrator video | [TBD] | End-to-end use case |
-| Screenshots / diagrams | [TBD: Orion entity browser, RViz topic graph, Odoo dashboard — Sprint 1.] | Visual proof of the bridging |
-| Execution logs | [TBD: captured logs from a successful demo run.] | Reproducibility |
-| Metrics | [TBD: latency from Odoo MO to ROS 2 service request; success rate over N runs] | Performance evidence |
-| Impact on end user | [TBD: short summary from the production deployment notes.] | Industrial value |
-| Impact on tech provider (reuse potential) | The adapter is reusable in any ERP-driven mixed-robotics cell that uses Vulcanexus + FIWARE. Three concrete reuse paths: (i) swap `HanelSoapClient` for another vertical-lift vendor's interface (estimated ≈300 LOC); (ii) swap Odoo for a different ERP by reimplementing `OdooClient`; (iii) use it as a Vulcanexus tutorial showing how to embed a FIWARE bridge inside a ROS 2 process. | Exploitation potential |
+| Demonstrator video | [TBD] — see [`../media/video_link.md`](../media/video_link.md) for the acceptance criteria. | End-to-end real-cell run |
+| Architecture + sequence diagrams | Mermaid (renders inline on GitHub): [`media/architecture_diagram.md`](../media/architecture_diagram.md) + [`media/sequence_diagram.md`](../media/sequence_diagram.md). | Visual proof of the bridging |
+| **Fresh-clone reproducibility — captured CLI / API evidence** | [`media/screenshots/`](../media/screenshots/) — ten text logs captured 2026-06-10 from `git clone` → `cp .env.example .env` → `docker compose up -d` → demo flow walkthrough. Highlights: `04_adapter_startup.log` shows the ROS4HRI Intent publisher coming up on `/intents`; `05_intent_published.log` carries two `Published ROS4HRI Intent: START_ACTIVITY mo=1 project=demo-ctrl-1 source=erp/odoo bom_lines=4` lines (one per BOM-resolution run, with the corresponding Shortage / Reservation create lines immediately after); `07_shortage_entity.log` + `09_reservation_entity.log` show the resulting NGSI-LD entities. | Sprint 1.5 reproducibility ✅ |
+| Metrics | [`media/screenshots/08_metrics.log`](../media/screenshots/08_metrics.log) — adapter `/metrics` Prometheus output (per-NGSI-LD-operation timings, Odoo call timings, warehouse counters). | Performance / latency evidence |
+| Screenshots (UI) | Still TBD (Grafana dashboard, demonstrator cell photo, HoloLens AR UI, Odoo MO view) — captured during a live demo session. See [`../media/screenshots/README.md`](../media/screenshots/README.md). | Visual evidence |
+| Impact on end user | The adapter is the integration backbone of the Ampero / Olorin custom electrical-panel assembly demonstrator (HERMES TRL6-7): customer orders flow from Odoo → adapter → Orion-LD → Mission Controller → JAKA Pro 16 + Hänel ASRS + AGV, with HoloLens AR guidance for the operator's manual wiring step. Without the adapter, every reseller integration would need a hand-written Odoo / Hänel / FIWARE bridge per cell. | Industrial value |
+| Impact on tech provider (reuse potential) | The adapter is reusable in any ERP-driven mixed-robotics cell that uses Vulcanexus + FIWARE. Three concrete reuse paths: (i) swap `HanelHostComClient` / `HanelSoapClient` for another vertical-lift vendor's interface (≈300 LOC); (ii) swap Odoo for a different ERP by reimplementing `OdooClient`; (iii) use it as a Vulcanexus tutorial showing how to embed a FIWARE + ROS4HRI bridge inside a ROS 2 process. | Exploitation potential |
 
-[TBD: 1-paragraph impact story.]
+**Impact narrative.** The TRL6-7 demonstrator validates the
+"ERP-driven mixed-robotics cell" integration story end-to-end: a
+planner enters a manufacturing order in Odoo, the adapter resolves
+the BOM + reserves stock + bridges into the FIWARE digital twin
+(`Project` → `Reservation` or `Shortage`), the Mission Controller
+picks up the work via standard ROS 2 services and orchestrates the
+Hänel vertical lift + cobots, and the HoloLens AR app guides the
+operator through the manual wiring. The same composition is
+applicable wherever a vertical lift + a robotics cell + an ERP need
+to converge — the adapter's pluggable `WarehouseClient` ABC and
+isolated `OdooClient` make the reseller integration effort closer to
+a fortnight than a quarter. The ROS4HRI Intent stream (Sprint 0.4)
+opens a second reuse path: any ROS4HRI-aware behaviour controller
+can subscribe to `/intents` and react to the planner's
+`START_ACTIVITY` events without knowing anything about Odoo.
 
 ### 3.3.10 Openness, commercial boundary and limitations
 

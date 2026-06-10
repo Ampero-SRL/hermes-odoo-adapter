@@ -24,12 +24,54 @@ logger = get_logger(__name__)
 
 class ProjectSyncWorker:
     """Worker for synchronizing project requests with Odoo BOM and stock data"""
-    
+
     def __init__(self, odoo_client: OdooClient, orion_client: OrionClient):
         self.odoo_client = odoo_client
         self.orion_client = orion_client
         self.subscription_id = "urn:ngsi-ld:Subscription:hermes-project"
-        
+        # ROS4HRI Intent publisher (Sprint 0.4). Wired by main.py once
+        # the HermesAdapterNode is up: a callable matching
+        # HermesAdapterNode.publish_planner_intent. Left as None when
+        # ROS 2 is disabled — the worker then silently skips Intent
+        # publishing.
+        self._intent_publisher: Optional[Any] = None
+
+    def set_intent_publisher(self, publisher: Any) -> None:
+        """Wire the ROS4HRI Intent publisher.
+
+        Called once after the ROS 2 node is constructed:
+        ``project_worker.set_intent_publisher(_ros2_node.publish_planner_intent)``.
+        """
+        self._intent_publisher = publisher
+        logger.info("ROS4HRI Intent publisher wired into ProjectSyncWorker")
+
+    def _publish_planner_intent(
+        self,
+        *,
+        mo_id: str,
+        project_id: str,
+        bom_lines: List[Dict[str, Any]],
+    ) -> None:
+        """Call the wired Intent publisher, if any. Silent no-op otherwise."""
+        if self._intent_publisher is None:
+            return
+        try:
+            self._intent_publisher(
+                mo_id=mo_id,
+                project_id=project_id,
+                bom_lines=bom_lines,
+                source="erp/odoo",
+            )
+        except Exception as exc:
+            # Never let an Intent publish failure abort the BOM
+            # resolution; the Intent stream is informational.
+            logger.warning(
+                "Failed to publish ROS4HRI Intent",
+                project_id=project_id,
+                error=str(exc),
+            )
+
+
     async def setup_subscription(self) -> bool:
         """Setup Orion-LD subscription for Project entities"""
         subscription_config = {
@@ -168,6 +210,25 @@ class ProjectSyncWorker:
                 return {"error": error_msg}
             
             logger.info("Retrieved BOM lines", line_count=len(bom_lines))
+
+            # Sprint 0.4 — publish a ROS4HRI Intent for this planner MO
+            # event so any /intents subscriber learns "the ERP planner
+            # has asked for kit X to be fulfilled" at the moment the
+            # adapter ingests the order. The publisher is a no-op if
+            # ROS 2 / hri_actions_msgs are unavailable.
+            self._publish_planner_intent(
+                mo_id=str(bom.get("id", "")),
+                project_id=project_id,
+                bom_lines=[
+                    {
+                        "sku": (line.get("product_id") or [None, None])[1]
+                               or line.get("product_code")
+                               or "",
+                        "qty": line.get("product_qty", 0),
+                    }
+                    for line in bom_lines
+                ],
+            )
 
             # Step 4: Check stock availability
             result = await self._check_stock_availability(project_id, bom_lines, quantity)

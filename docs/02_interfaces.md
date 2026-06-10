@@ -50,7 +50,7 @@ package (see `VENDORED_FROM.md` there).
 | `/hermes/warehouse/tray_state` | `std_msgs/Int16` | **Publish** | latched: `KEEP_LAST/1` + `TRANSIENT_LOCAL` (reliability inherited from default) | Current tray id at the Hänel pickup point; latched so late joiners see the last value. |
 | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | **Publish** | default | Per-subsystem health (warehouse / Odoo / Orion / ROS 2). Published once per second by a timer. |
 | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | **Subscribe** | default | Mission-controller state stream — the adapter parses the JSON and applies the relevant NGSI-LD patches. |
-| `/humans/intents` *(planned, Sprint 0.4)* | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see §4 below. The publisher is **not yet implemented** in this adapter; once it lands, this row will lose the *(planned)* tag. |
+| `/intents` | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see §4 below. Fired by `ros2_node.HermesAdapterNode.publish_planner_intent()` whenever `ProjectSyncWorker._process_project_request` ingests an Odoo MO. Topic name `/intents` follows the [ROS4HRI tutorial convention](https://ros4hri.github.io/ros4hri-tutorials/interactive-social-robots/). |
 
 ### Parameters
 
@@ -67,7 +67,8 @@ The adapter has three equivalent entrypoints:
 |---|---|
 | `python -m hermes_odoo_adapter` | Local dev (host has ROS 2 + Vulcanexus + vendored `hermes_msgs` built). |
 | `docker compose -f docker/docker-compose.demo.yml up` | Fresh-clone hello world / basic demo. |
-| `ros2 launch ./launch/hermes_odoo_adapter.launch.py` *(or `/app/launch/...` inside the image)* | Standard ROS 2 launch system. Declares `ros2_node_name` / `warehouse_backend` / `log_level` launch arguments — all other configuration comes from the environment. Invoked **by path**, not by package name, because the adapter is Poetry-managed and not registered as an ament package. See [`../launch/README.md`](../launch/README.md). |
+| `ros2 launch hermes_odoo_adapter_launch hermes_odoo_adapter.launch.py` | Standard ROS 2 launch system, package-name form. Resolves through the small `hermes_odoo_adapter_launch` ament_python wrapper at [`../ros2_ws/src/hermes_odoo_adapter_launch/`](../ros2_ws/src/hermes_odoo_adapter_launch/); the wrapper is colcon-built automatically inside the Docker image. Same `ros2_node_name` / `warehouse_backend` / `log_level` arguments as the path-based form. |
+| `ros2 launch ./launch/hermes_odoo_adapter.launch.py` *(or `/app/launch/...` inside the image)* | Same launch file, invoked **by path** (handy when the ament wrapper isn't sourced — e.g. during native dev). See [`../launch/README.md`](../launch/README.md). |
 
 ### Service usage examples
 
@@ -209,27 +210,37 @@ for the **admin / debug** surface during integration.
 
 ## 4. ROS4HRI / ROS4RI Intent
 
-### Position: **Used — mapped, publisher implementation pending (Sprint 0.4)**
+### Position: **Used** — implemented in Sprint 0.4
 
-The adapter will publish [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
-for the human-originated inputs **it directly ingests** — which in this
-repo means **only the Odoo planner manufacturing-order intent**.
-Operator-side intents (HoloLens project-selection, placement confirmation,
-assembly-complete) live in companion ROS 2 nodes closer to their source
+The adapter publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
+on the canonical ROS4HRI **`/intents`** topic for the human-originated
+inputs **it directly ingests** — which in this repo means **only the
+Odoo planner manufacturing-order intent**. Operator-side intents
+(HoloLens project-selection, placement confirmation, assembly-complete)
+live in companion ROS 2 nodes closer to their source
 (`hermes_main/ar_bridge_node`, a future companion next to
-`hermes_main/hololens_api`) and are mapped in [`D4_PLAN.md`](D4_PLAN.md) §4.4.
-The adapter re-uses the standard `Intent.intent` constants where they
-fit and adds domain-specific labels where they don't. **No message extension** — the
+`hermes_main/hololens_api`) and are mapped in
+[`D4_PLAN.md`](D4_PLAN.md) §4.4. The adapter re-uses the standard
+`Intent.intent` constants where they fit and adds domain-specific
+labels where they don't. **No message extension** — the
 `hri_actions_msgs/Intent` envelope is used as-is, with a free-form
 `intent` string and a JSON `data` payload for the thematic roles.
 
-> **Implementation status.** The mapping below is the canonical plan;
-> the actual publisher code is **not yet in `ros2_node.py`** as of the D4
-> Sprint 1 cut. The mapping table is locked, but a few mentor questions
-> (canonical topic name, custom-label acceptance) are still open — see
-> [`D4_PLAN.md`](D4_PLAN.md) §4.4. Sprint 0.4 lands the implementation;
-> until then this section documents the contract the adapter targets,
-> not what it emits today.
+**Implementation:**
+
+- Publisher: `HermesAdapterNode.publish_planner_intent()` in
+  [`src/hermes_odoo_adapter/ros2_node.py`](../src/hermes_odoo_adapter/ros2_node.py) —
+  creates the `/intents` publisher on startup.
+- Call site: `ProjectSyncWorker._process_project_request` in
+  [`src/hermes_odoo_adapter/workers/project_sync.py`](../src/hermes_odoo_adapter/workers/project_sync.py) —
+  fires the Intent as soon as the BOM is retrieved from Odoo, before
+  stock checking.
+- Defensive import: if `hri_actions_msgs` isn't built into the
+  workspace, the publisher is `None` and `publish_planner_intent()`
+  becomes a silent no-op (one warning log at startup). The Dockerfile
+  builds `hri_actions_msgs` from source via
+  [`ros2_ws/deps.repos`](../ros2_ws/deps.repos) (`humble-devel`) so
+  the production image always has it.
 
 ### Intent topology
 
@@ -242,16 +253,15 @@ possible**, so the publisher topology is split:
 | HoloLens "Select project" / "Assembly complete" | new companion node next to `hololens_api` (or extend `ar_bridge_node` to take both) | `hermes_main/` |
 | **Odoo planner creates a manufacturing order** | **this adapter** — the only flow the adapter directly ingests | **this repo** |
 
-Only the **Odoo MO intent** is published from this repo, on
-`/humans/intents` (the topic name is configurable; the placeholder is
-`/humans/intents` until the ARISE ROS4HRI mentor confirms the canonical
-choice).
+Only the **Odoo MO intent** is published from this repo, on **`/intents`**
+— the canonical ROS4HRI topic per the
+[ROS4HRI tutorial](https://ros4hri.github.io/ros4hri-tutorials/interactive-social-robots/).
 
 ### Mapping table (this adapter — the Odoo MO intent only)
 
 | Adapter event | `Intent.intent` | `Intent.source` | `Intent.modality` | `Intent.data` (JSON) | Mapping kind |
 |---|---|---|---|---|---|
-| Odoo planner places a manufacturing order (adapter polls Odoo → creates `Reservation` in Orion-LD) | `START_ACTIVITY` (standard constant) or domain `FULFILL_KIT` | `REMOTE_SUPERVISOR` (standard) or `UNKNOWN_AGENT` if no Odoo user attribution | `MODALITY_OTHER` (standard) — best fit for an ERP-form-submission modality | `{"activity":"manufacturing_order","mo_id":"...","bom":[{"sku":"...","qty":...}, ...],"project_id":"urn:ngsi-ld:Project:..."}` | **Used — standard constant + domain JSON payload** |
+| Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"manufacturing_order","id":"<mo_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` | **Used — standard constant + free-form source + JSON payload (codex-validated)** |
 
 For the **other** human-originated intents (HoloLens flows handled by
 companion nodes), see [`D4_PLAN.md`](D4_PLAN.md) §4.4 for the full mapping

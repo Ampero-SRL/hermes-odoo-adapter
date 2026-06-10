@@ -37,6 +37,18 @@ from hermes_msgs.srv import (
 from hermes_msgs.msg import InventoryUpdate
 from builtin_interfaces.msg import Time
 
+# ROS4HRI Intent — defensive import so the adapter still starts if
+# `hri_actions_msgs` isn't built into the workspace (e.g. on hosts where
+# the colcon build skipped it). When the import fails, the Intent
+# publisher is left as None and `publish_planner_intent()` is a no-op
+# that emits a single warning log.
+try:
+    from hri_actions_msgs.msg import Intent as _HriIntent
+    HRI_INTENT_AVAILABLE = True
+except ImportError:
+    _HriIntent = None  # type: ignore[assignment,misc]
+    HRI_INTENT_AVAILABLE = False
+
 from .warehouse.base import WarehouseClient
 from .odoo_client import OdooClient
 from .orion_client import OrionClient
@@ -138,11 +150,35 @@ class HermesAdapterNode(Node):
         self._last_published_tray: Optional[int] = None
         self.create_timer(1.0, self._publish_diagnostics)
 
+        # -- ROS4HRI Intent publisher (Sprint 0.4) ----------------------------
+        # The adapter publishes hri_actions_msgs/Intent on the canonical
+        # ROS4HRI `/intents` topic for the inbound human-originated flow it
+        # directly ingests: an Odoo planner manufacturing-order event.
+        # Operator-side intents (HoloLens placement / project selection /
+        # assembly complete) are published from companion nodes closer to
+        # their source — see docs/02_interfaces.md §4 and D4_PLAN.md §4.4.
+        self._intent_pub = None
+        if HRI_INTENT_AVAILABLE:
+            self._intent_pub = self.create_publisher(
+                _HriIntent, "/intents", 10,
+            )
+            self.get_logger().info(
+                "ROS4HRI Intent publisher up on /intents "
+                "(hri_actions_msgs.msg.Intent)"
+            )
+        else:
+            self.get_logger().warning(
+                "hri_actions_msgs not installed — Intent publishing is "
+                "disabled. Build hri_actions_msgs via "
+                "ros2_ws/deps.repos to enable."
+            )
+
         self.get_logger().info(
             "HermesAdapterNode ready — services: warehouse/pick, "
             "warehouse/status, warehouse/cancel, stock/consume, "
             "stock/produce | topics: /diagnostics, "
-            "/hermes/warehouse/tray_state (latched)"
+            "/hermes/warehouse/tray_state (latched)" +
+            (", /intents" if self._intent_pub is not None else "")
         )
 
     # ======================================================================
@@ -153,6 +189,71 @@ class HermesAdapterNode(Node):
         """Schedule *coro* on the FastAPI event loop and wait for the result."""
         future = asyncio.run_coroutine_threadsafe(coro, self._loop)
         return future.result(timeout=30)
+
+    # ======================================================================
+    # ROS4HRI: publish a planner-originated Intent
+    # ======================================================================
+
+    def publish_planner_intent(
+        self,
+        *,
+        mo_id: str,
+        project_id: str,
+        bom_lines: Optional[list] = None,
+        source: str = "erp/odoo",
+    ) -> None:
+        """Publish an `hri_actions_msgs/Intent` for an Odoo MO event.
+
+        Conventions (codex-verified, see docs/02_interfaces.md §4):
+
+        - Topic: ``/intents`` (the canonical ROS4HRI bus).
+        - ``intent``:   ``START_ACTIVITY`` (standard constant — "ERP
+                        planner requests work to begin").
+        - ``source``:   ``erp/odoo`` by default — string is free-form per
+                        the Intent.msg spec; ``erp/odoo`` carries the
+                        provenance a generic ROS4HRI consumer can route on.
+        - ``modality``: ``MODALITY_OTHER`` (ERP form submission isn't
+                        speech / motion / touchscreen).
+        - ``confidence``: 1.0 (the MO is a deterministic ERP event).
+        - ``data``:     JSON-encoded thematic-role payload with the
+                        ``activity``, ``goal``, ``object``, ``project_id``
+                        and ``bom`` fields.
+
+        No-op (with a single warning log) if ``hri_actions_msgs`` wasn't
+        importable at adapter startup.
+        """
+        if self._intent_pub is None or _HriIntent is None:
+            self.get_logger().warning(
+                "publish_planner_intent skipped — hri_actions_msgs unavailable"
+            )
+            return
+
+        payload = {
+            "activity": "manufacturing_order",
+            "goal": "fulfill_kit",
+            "object": {"type": "manufacturing_order", "id": str(mo_id)},
+            "project_id": str(project_id),
+            "bom": bom_lines or [],
+        }
+
+        msg = _HriIntent()
+        # Intent.msg uses the standard `intent` / `source` / `modality`
+        # SCREAMING_SNAKE_CASE constants on the wire; the field type is a
+        # plain string so we can also pass a free-form value like
+        # `erp/odoo` for the source. See
+        # https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg
+        msg.intent = "START_ACTIVITY"
+        msg.source = source
+        msg.modality = "MODALITY_OTHER"
+        msg.confidence = 1.0
+        msg.data = json.dumps(payload, separators=(",", ":"))
+
+        self._intent_pub.publish(msg)
+        self.get_logger().info(
+            f"Published ROS4HRI Intent: START_ACTIVITY "
+            f"mo={mo_id} project={project_id} source={source} "
+            f"bom_lines={len(payload['bom'])}"
+        )
 
     # ======================================================================
     # Warehouse service handlers
