@@ -78,6 +78,9 @@ COPY examples/ ./examples/
 # behind it). Ship it inside the image so the demo flow works on a
 # fresh clone without extra mounts.
 COPY project_mapping.json ./project_mapping.json
+# Ship `launch/` so the `ros2 launch /app/launch/...` path documented in
+# launch/README.md actually works inside the container.
+COPY launch/ ./launch/
 
 # Create log directory
 RUN mkdir -p /app/logs

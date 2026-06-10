@@ -21,7 +21,7 @@ flowchart LR
         RNODE["rclpy node 'hermes_adapter'<br/>5 srv + 3 pub + 1 sub"]
         OdooClient["OdooClient<br/>(JSON-RPC)"]
         OrionClient["OrionClient<br/>(NGSI-LD)"]
-        WClient["WarehouseClient ABC<br/>HanelHostComClient (default)<br/>HanelSoapClient (legacy)<br/>NullWarehouseClient (dev)"]
+        WClient["WarehouseClient ABC<br/>NullWarehouseClient (default in demo)<br/>HanelHostComClient (TCP HOST-COM, production)<br/>HanelSoapClient (HOST-WEB SOAP, legacy)"]
         FAPI --- OrionClient
         FAPI --- OdooClient
         RNODE --- WClient
@@ -45,7 +45,8 @@ flowchart LR
     end
 
     MC -- DDS services<br/>warehouse/pick · stock/consume --> RNODE
-    RNODE -- DDS topic<br/>/hermes/mission_state --> MC
+    MC -- DDS topic<br/>/hermes/mission_state --> RNODE
+    RNODE -- DDS topic<br/>/hermes/inventory_updates<br/>/hermes/warehouse/tray_state --> MC
     OdooClient -- JSON-RPC --> Odoo
     OrionClient -- NGSI-LD --> Orion
     WClient -- "HOST-COM / SOAP" --> Hanel

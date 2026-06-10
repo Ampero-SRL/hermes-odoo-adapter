@@ -148,8 +148,8 @@ Sprint 2):
 
 | Element | Name | Type | Description |
 |---|---|---|---|
-| Node | `hermes_odoo_adapter` | `rclpy.Node` | Hybrid DDS + FastAPI; background `rclpy.spin` thread. |
-| Service | `/hermes/warehouse/pick` | `hermes_msgs/srv/WarehousePick` | Initiate tray retrieval; integrates with Hänel SOAP or `NullWarehouseClient`. |
+| Node | `hermes_adapter` (default; override via `ROS2_NODE_NAME`) | `rclpy.Node` | Hybrid DDS + FastAPI; background `rclpy.spin` thread. |
+| Service | `/hermes/warehouse/pick` | `hermes_msgs/srv/WarehousePick` | Initiate tray retrieval; routes through `HanelHostComClient` / `HanelSoapClient` / `NullWarehouseClient`. |
 | Service | `/hermes/warehouse/status` | `hermes_msgs/srv/WarehousePickStatus` | Poll retrieval progress. |
 | Service | `/hermes/warehouse/cancel` | `hermes_msgs/srv/WarehousePickCancel` | Cancel an in-flight retrieval. |
 | Service | `/hermes/stock/consume` | `hermes_msgs/srv/ConsumeStock` | Decrement Odoo stock + NGSI-LD `InventoryItem` after cobot pick. |
@@ -256,8 +256,8 @@ ros2 service call /hermes/warehouse/pick \
 |---|---|---|---|
 | Manipulator / cobot | Yes — JAKA Pro 16 (×2, JAKA SDK V2.3.1, gRPC + TCP) | Any ROS 2-driven cobot whose driver exposes joint trajectories and a vacuum/gripper service | Adapter does not directly drive the cobot; it interacts via the Mission Controller's services. |
 | Mobile robot / AMR / AGV | Yes — XBOT AGV (433 MHz / RS485 wireless) | Any AGV exposing a docking action via ROS 2 (e.g. `nav2`) | Routing logic lives in the Mission Controller, not in the adapter. |
-| Industrial cell / PLC | Yes — Hänel MP 12N HOST-COM controller (TCP telegrams) | Any vertical lift / vertical carousel exposing a SOAP / HTTP API behind the `WarehouseClient` interface | A `HanelSoapClient` is the only built-in backend besides `Null`; another vendor needs an interface implementation (≈300 LOC). |
-| Sensors | Yes — Basler a2A3840-45ucPRO 4K USB3 (Jetson DINOv2 + grabcut detection) | Any RGB camera + detection node publishing `hermes_msgs/msg/DetectedComponent` | Detection is upstream; adapter consumes `/hermes/inventory_updates`. |
+| Industrial cell / PLC | Yes — Hänel MP 12N controller (TCP HOST-COM telegrams via `HanelHostComClient`; HOST-WEB SOAP 1.1 fallback via `HanelSoapClient`) | Any vertical lift / vertical carousel that can sit behind the `WarehouseClient` interface | Built-in backends: `HanelHostComClient`, `HanelSoapClient`, `NullWarehouseClient`. Another vendor needs ≈300 LOC of `WarehouseClient` subclass. |
+| Sensors | Yes — Basler a2A3840-45ucPRO 4K USB3 (Jetson DINOv2 + grabcut detection) | Any RGB camera + detection node that publishes `hermes_msgs/msg/DetectedComponent` and downstream `hermes_msgs/msg/InventoryUpdate` consumers | Detection is upstream of this module; the adapter is *not* a subscriber of `/hermes/inventory_updates` — it is the **publisher** (downstream consumers like dashboards or the Mission Controller subscribe). |
 | Simulator / recorded data | Yes — `NullWarehouseClient` + `docker/odoo-mock` | Any environment running Docker + Orion-LD | No Gazebo / Isaac Sim integration is needed for the adapter's hello world. |
 
 **Missions contributed to:**

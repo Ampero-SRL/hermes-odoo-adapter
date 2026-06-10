@@ -5,25 +5,25 @@ ament package — so this launch file is a thin `ExecuteProcess` wrapper
 that lets the standard `ros2 launch` entrypoint start it the same way
 the Docker entrypoint does (`python -m hermes_odoo_adapter`).
 
-Typical use:
+Because the adapter isn't installed as an ament package, **invoke the
+launch file by path**, not by package name:
 
     # Native (ROS 2 Humble + Vulcanexus already sourced):
-    ros2 launch hermes_odoo_adapter hermes_odoo_adapter.launch.py
+    ros2 launch ./launch/hermes_odoo_adapter.launch.py
 
-    # Inside the Docker image:
+    # Inside the demo Docker image (launch/ is copied to /app/launch/):
     docker compose exec adapter \\
         ros2 launch /app/launch/hermes_odoo_adapter.launch.py
 
 Launch arguments:
 
-    ros2_node_name   override the rclpy node name (default: hermes_adapter)
-    warehouse_backend  null | hanel_hostcom | hanel_soap   (default: null)
-    log_level        debug | info | warning | error        (default: info)
-    extra_env        comma-separated KEY=VALUE pairs forwarded to the
-                     adapter process
+    ros2_node_name      override the rclpy node name (default: hermes_adapter)
+    warehouse_backend   null | hanel_hostcom | hanel_soap (default: null)
+    log_level           debug | info | warning | error    (default: info)
 
-All adapter knobs that aren't exposed as launch arguments come from the
-process environment (see `.env.example` for the full list).
+All other adapter knobs come from the process environment (see
+`.env.example`); set them before invoking `ros2 launch` (or via
+`docker compose` env_file / environment blocks).
 """
 
 from launch import LaunchDescription
@@ -35,7 +35,6 @@ def generate_launch_description() -> LaunchDescription:
     ros2_node_name = LaunchConfiguration("ros2_node_name")
     warehouse_backend = LaunchConfiguration("warehouse_backend")
     log_level = LaunchConfiguration("log_level")
-    extra_env = LaunchConfiguration("extra_env")
 
     adapter_process = ExecuteProcess(
         cmd=["python3", "-m", "hermes_odoo_adapter"],
@@ -45,7 +44,6 @@ def generate_launch_description() -> LaunchDescription:
             "ROS2_NODE_NAME": ros2_node_name,
             "WAREHOUSE_BACKEND": warehouse_backend,
             "LOG_LEVEL": log_level,
-            "EXTRA_ENV": extra_env,
             "ROS_DOMAIN_ID": EnvironmentVariable("ROS_DOMAIN_ID", default_value="42"),
         },
         respawn=False,
@@ -69,12 +67,6 @@ def generate_launch_description() -> LaunchDescription:
                 "log_level",
                 default_value="info",
                 description="Adapter log level (debug / info / warning / error).",
-            ),
-            DeclareLaunchArgument(
-                "extra_env",
-                default_value="",
-                description="Comma-separated KEY=VALUE pairs forwarded to the "
-                "adapter process as environment variables.",
             ),
             adapter_process,
         ]
