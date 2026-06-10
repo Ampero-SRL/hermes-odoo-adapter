@@ -265,7 +265,17 @@ exercised through the adapter.
 | Topic `/hermes/warehouse/tray_state` | Yes — Stage 2 | `ros2 topic echo` |
 | Topic `/diagnostics` | (continuously) | `ros2 topic echo /diagnostics` |
 | Topic `/hermes/mission_state` (subscriber) | **Not exercised** in this demo — needs an upstream Mission Controller publishing it. | n/a |
-| ROS4HRI `Intent` publish (Sprint 0.4) | **Not exercised yet** — implementation pending mentor decisions; see [`D4_PLAN.md`](D4_PLAN.md) §4.4. | n/a |
+| ROS4HRI `Intent` publish | Yes — Stage 1 fires it twice (once per recompute). Tail the adapter logs and look for `Published ROS4HRI Intent: START_ACTIVITY mo=... source=erp/odoo`. The captured proof is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log). | adapter logs |
+
+## Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `LdContextNotAvailable: http://localhost:8080/context.jsonld` from Orion when creating a Project | The `@context` URL points at the host loopback, which Orion can't reach from inside the compose network. | Use `http://adapter:8080/context.jsonld` (the shipped `examples/payloads/*.json` already do). |
+| Second `POST /admin/recompute/<id>` returns "queued" but the worker never fires (no logs, no new Reservation) | The idempotency cache caught a `(project_id, data)` hash repeat. | `curl -X DELETE http://localhost:8080/admin/idempotency/<project_id>` and re-issue the recompute. The cache exists to avoid duplicate work when Orion notifies twice for the same Project. |
+| `Failed to setup project subscription` once at startup | First `POST /ngsi-ld/v1/subscriptions` reached Orion before it had finished initialising. | Cosmetic — the adapter still runs, and the demo `04_basic_demo_how_to_use.md` flow doesn't depend on the subscription (it triggers the worker via `/admin/recompute`). Fixed at the source in newer commits (Orion's 201-No-Content is no longer treated as failure). |
+| `Odoo API error: Unknown method: read` from the worker | Stale `odoo-mock` image from before the `read()` method was added. | Rebuild: `docker compose -f docker/docker-compose.demo.yml build odoo-mock`. |
+| `ros2 topic echo /intents` exits with `RuntimeError: !rclpy.ok()` | The host's `ros2` CLI got a `rclpy` shutdown race when the compose container restarted. | Use the adapter's own logs as the canonical `/intents` evidence (the publisher logs every Intent). The actual `ros2 topic echo --once /intents` does work from a fresh shell against a live container. |
 
 ## Tearing down
 
