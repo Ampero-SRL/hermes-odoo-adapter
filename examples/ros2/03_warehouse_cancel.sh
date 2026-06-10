@@ -2,8 +2,12 @@
 # Cancel a pending warehouse pick job. Pass the job_id as the first
 # argument.
 #
-# Expected output:
-#   response: hermes_msgs.srv.WarehousePickCancel_Response(success=True, error='')
+# Service signature (hermes_msgs/srv/WarehousePickCancel):
+#   request : string job_id
+#   response: bool   success
+#
+# Expected response:
+#   response: hermes_msgs.srv.WarehousePickCancel_Response(success=True)
 
 set -euo pipefail
 : "${JOB_ID:=${1:-}}"

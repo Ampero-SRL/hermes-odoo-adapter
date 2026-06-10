@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Trigger a full Odoo -> Orion-LD inventory sync. Useful after seeding
-# the Odoo mock with new SKUs.
+# Queue a full Odoo -> Orion-LD inventory sync. The sync runs in the
+# background; this call only acknowledges that it was queued.
 #
-# Expected output:
-#   {"started":true,"items_queued":<N>,...}
+# Expected response (main.py:565-575):
+#   {"message": "Inventory synchronization queued"}
 #
-# Follow up with 06b (admin/inventory/status) to see when the sync completes.
+# Follow with `/admin/inventory/status` to watch the worker complete.
 
 set -euo pipefail
 : "${ADAPTER_URL:=http://localhost:8080}"

@@ -1,17 +1,25 @@
 {
-  "id": "urn:ngsi-ld:Shortage:demo-project-1-ARTICOLO7",
+  "id": "urn:ngsi-ld:Shortage:demo-project-1",
   "type": "Shortage",
   "projectRef": {
     "type": "Relationship",
     "object": "urn:ngsi-ld:Project:demo-project-1"
   },
-  "sku": {
+  "status": {
     "type": "Property",
-    "value": "ARTICOLO7"
+    "value": "open"
   },
-  "quantityMissing": {
+  "lines": {
     "type": "Property",
-    "value": 3
+    "value": [
+      {
+        "sku": "ARTICOLO7",
+        "missingQty": 3,
+        "requiredQty": 5,
+        "availableQty": 2,
+        "unit": "Unit"
+      }
+    ]
   },
   "createdAt": {
     "type": "Property",

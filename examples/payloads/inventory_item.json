@@ -5,13 +5,20 @@
     "type": "Property",
     "value": "ARTICOLO5"
   },
-  "quantity": {
+  "available": {
     "type": "Property",
-    "value": 12
+    "value": 12,
+    "unitCode": "Unit"
   },
-  "warehouseState": {
+  "reserved": {
     "type": "Property",
-    "value": "available"
+    "value": 0,
+    "unitCode": "Unit"
+  },
+  "total": {
+    "type": "Property",
+    "value": 12,
+    "unitCode": "Unit"
   },
   "updatedAt": {
     "type": "Property",

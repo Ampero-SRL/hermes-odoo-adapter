@@ -2,22 +2,28 @@
 # Decrement stock through the adapter's HTTP face (equivalent to the
 # /hermes/stock/consume ROS 2 service, for clients that aren't on DDS).
 #
-# Expected output:
-#   {"success":true,"sku":"ARTICOLO5","new_quantity":11,...}
+# Request body (ConsumeRequest model in main.py:259-272):
+#   {"project_id": "...", "sku": "...", "quantity": <int>}
+#
+# Expected response shape (main.py:476-480):
+#   {
+#     "status": "ok",
+#     "message": "Consumed 1 units of ARTICOLO5",
+#     "details": { ... Odoo stock-move result ... }
+#   }
 
 set -euo pipefail
 : "${ADAPTER_URL:=http://localhost:8080}"
+: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-project-1}"
 : "${SKU:=ARTICOLO5}"
 : "${QUANTITY:=1}"
-: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-project-1}"
 
 curl -sS \
     -H "Content-Type: application/json" \
     -X POST "${ADAPTER_URL}/api/consume" \
     -d "{
-        \"sku\": \"${SKU}\",
-        \"quantity\": ${QUANTITY},
         \"project_id\": \"${PROJECT_ID}\",
-        \"operator\": \"example-script\"
+        \"sku\": \"${SKU}\",
+        \"quantity\": ${QUANTITY}
     }" \
     | (command -v jq > /dev/null && jq . || cat)

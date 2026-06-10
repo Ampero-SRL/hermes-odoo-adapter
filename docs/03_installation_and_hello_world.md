@@ -46,19 +46,20 @@ until curl -sf http://localhost:8080/healthz > /dev/null; do sleep 2; done
 curl -s http://localhost:8080/healthz | jq .
 ```
 
-Expected output for step 3:
+Expected output for step 3 (the liveness probe is intentionally cheap —
+it does not check the backing subsystems):
 
 ```json
 {
-  "status": "ok",
-  "version": "2.0.0",
-  "subsystems": {
-    "odoo": "ok",
-    "orion": "ok",
-    "warehouse": "ok (NullWarehouseClient)"
-  }
+  "status": "healthy",
+  "service": "hermes-odoo-adapter",
+  "version": "2.0.0"
 }
 ```
+
+For per-subsystem readiness (Odoo / Orion / warehouse / ROS 2), hit
+`/readyz` instead — it returns a `checks` map + a `details` map. See
+[`../examples/curl/02_readyz.sh`](../examples/curl/02_readyz.sh).
 
 ```bash
 # 4) Confirm the NGSI-LD entities the adapter exposes.
@@ -79,16 +80,18 @@ docker compose -f docker/docker-compose.demo.yml exec adapter \
     '
 ```
 
-Expected output for step 5:
+Expected output for step 5 (empty `job_id` request → adapter assigns one
+as `J-<8 hex chars>`):
 
 ```
 requester: making request: hermes_msgs.srv.WarehousePick_Request(job_id='', sku='ARTICOLO5', quantity=1)
 response:
-hermes_msgs.srv.WarehousePick_Response(success=True, job_id='M<timestamp>-<hex>', error='')
+hermes_msgs.srv.WarehousePick_Response(success=True, job_id='J-1a2b3c4d', error='')
 ```
 
 The `success=True` + populated `job_id` mean the adapter accepted the
-request and the `NullWarehouseClient` simulated the tray retrieval.
+request and the `NullWarehouseClient` simulated the tray retrieval. The
+hex part of the `job_id` will differ on every call.
 
 If you reached this point: **the adapter is running, NGSI-LD entities are
 populated, and the ROS 2 service face is reachable from a sibling

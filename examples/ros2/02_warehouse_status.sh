@@ -2,9 +2,15 @@
 # Poll a warehouse pick job's status. Pass the job_id returned by
 # 01_warehouse_pick.sh as the first argument (or via JOB_ID env var).
 #
-# Expected output (NullWarehouseClient, typically immediate):
+# Service signature (hermes_msgs/srv/WarehousePickStatus):
+#   request : string job_id
+#   response: string status   # submitted | presenting | ready | failed
+#             string slot     # e.g. "L1-S7" (Hanel) or "NULL-A1" (mock)
+#             bool   tray_ready
+#
+# Expected response with NullWarehouseClient (returns ready immediately):
 #   response: hermes_msgs.srv.WarehousePickStatus_Response(
-#       status='ready', slot=0, tray_ready=True, error='')
+#       status='ready', slot='NULL-A1', tray_ready=True)
 
 set -euo pipefail
 : "${JOB_ID:=${1:-}}"
