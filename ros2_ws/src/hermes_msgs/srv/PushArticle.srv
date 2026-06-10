@@ -1,0 +1,6 @@
+# Push article master data to warehouse — Adapter internal / admin
+# Syncs SKU codes from Odoo to warehouse (e.g. Hanel sendAPDReqV01)
+string sku
+string name
+---
+bool success
