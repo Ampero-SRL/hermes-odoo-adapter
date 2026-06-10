@@ -1,9 +1,32 @@
 """
 Configuration settings for HERMES Odoo Adapter
 """
-from typing import List, Optional
+import json
+from typing import Annotated, Any, List, Optional
 from pydantic import Field, validator
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, NoDecode
+
+
+def _parse_str_list(value: Any) -> Any:
+    """Accept JSON list `["a","b"]` OR comma-separated `a,b` strings.
+
+    Used by the env-loaded `List[str]` settings below. Pairs with
+    ``Annotated[List[str], NoDecode]`` to disable pydantic-settings'
+    JSON pre-decoding for fields whose `.env.example` uses the
+    comma-separated form (so the validator sees the raw string and
+    can decide what to do with it).
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.strip()
+    if stripped.startswith("["):
+        try:
+            decoded = json.loads(stripped)
+            if isinstance(decoded, list):
+                return decoded
+        except (ValueError, json.JSONDecodeError):
+            pass
+    return [item.strip() for item in stripped.split(",") if item.strip()]
 
 
 class Settings(BaseSettings):
@@ -55,7 +78,12 @@ class Settings(BaseSettings):
         le=1000
     )
 
-    inventory_allowed_skus: List[str] = Field(
+    # ``NoDecode`` skips pydantic-settings' JSON pre-decoding so the
+    # ``@validator("…", pre=True)`` below can accept the bare comma-
+    # separated `FOO,BAR,BAZ` form straight from `.env` (which is what
+    # the shipped `.env.example` uses). Without NoDecode the env-source
+    # tries `json.loads` first and dies on the comma-separated value.
+    inventory_allowed_skus: Annotated[List[str], NoDecode] = Field(
         default=[
             # Finished product
             "CTRL-PANEL-A1",
@@ -77,7 +105,10 @@ class Settings(BaseSettings):
     )
     
     # Stock Location Configuration
-    stock_location_names: List[str] = Field(
+    # Same NoDecode rationale as `inventory_allowed_skus` — the env
+    # form is `Stock,WH/Stock,…` and pydantic-settings would otherwise
+    # try to JSON-decode it first.
+    stock_location_names: Annotated[List[str], NoDecode] = Field(
         default=["Stock", "WH/Stock"],
         description="Stock location names to include in calculations"
     )
@@ -212,17 +243,13 @@ class Settings(BaseSettings):
 
     @validator("inventory_allowed_skus", pre=True)
     def parse_inventory_allowed_skus(cls, value):
-        """Allow comma-separated env values for SKU filters"""
-        if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
-        return value
-    
+        """Accept JSON list `["A","B"]` OR comma-separated `A,B` env strings."""
+        return _parse_str_list(value)
+
     @validator("stock_location_names", pre=True)
     def parse_location_names(cls, v):
-        """Parse comma-separated location names from environment"""
-        if isinstance(v, str):
-            return [name.strip() for name in v.split(",") if name.strip()]
-        return v
+        """Accept JSON list `["A","B"]` OR comma-separated `A,B` env strings."""
+        return _parse_str_list(v)
 
     @validator("hanel_sku_tray_map", pre=True)
     def parse_hanel_sku_tray_map(cls, v):
