@@ -243,8 +243,9 @@ curl -sS -X PATCH \
     -H "Link: <http://localhost:8080/context.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"" \
     "http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1/attrs" \
     -d '{"status": {"type":"Property","value":"completed"}}'
-# Note: the Project.status enum is requested / ready / blocked / running /
-# completed / cancelled (Project.schema.json); "completed", not "complete".
+# Note: the Project.status enum is requested / processing / shortage /
+# ready / blocked / running / completed / cancelled (Project.schema.json);
+# the right terminal value is "completed", not "complete".
 ```
 
 **What this proves.** The full lifecycle (order placed → tray retrieved
