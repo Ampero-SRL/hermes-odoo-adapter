@@ -77,7 +77,7 @@ End-to-end run (single project, one BOM line):
 9. Mission Controller calls `/hermes/stock/consume` → adapter updates
    Odoo + Orion + emits `/hermes/inventory_updates`.
 10. Repeat 4-9 for the next BOM line.
-11. After all picks: `/hermes/stock/produce` + `Project.status = complete`.
+11. After all picks: `/hermes/stock/produce` + `Project.status = completed`.
 
 ## Open module ↔ demonstrator mapping
 
