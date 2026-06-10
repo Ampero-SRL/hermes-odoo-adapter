@@ -26,7 +26,13 @@ after this.
 The "Hello World" path uses **only mocks**. No real cobot, no real
 warehouse, no real ERP.
 
-## Hello World — six commands
+## Hello World — five commands
+
+> Hello World is intentionally minimal — it confirms the adapter
+> process is up, the FastAPI face responds, and the ROS 2 / DDS face
+> accepts a service call. Listing NGSI-LD entities and driving the
+> end-to-end Odoo → Orion → ROS 2 → mock-cobot flow is the **basic
+> demo** in [`04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md).
 
 The whole purpose of this section: a fresh reviewer clones the repo, runs
 these commands, and sees a known-good response in under five minutes.
@@ -67,14 +73,7 @@ For per-subsystem readiness (Odoo / Orion / warehouse / ROS 2), hit
 [`../examples/curl/02_readyz.sh`](../examples/curl/02_readyz.sh).
 
 ```bash
-# 5) Confirm the NGSI-LD entities the adapter exposes.
-curl -s -H "Accept: application/ld+json" \
-  http://localhost:1026/ngsi-ld/v1/entities?type=Project | jq '.[0].id'
-# -> "urn:ngsi-ld:Project:<demo-project-id>" (from the seed scripts)
-```
-
-```bash
-# 6) Call one ROS 2 service against the adapter from a Vulcanexus shell.
+# 5) Call one ROS 2 service against the adapter from a Vulcanexus shell.
 docker compose -f docker/docker-compose.demo.yml exec adapter \
     bash -lc '
         source /opt/ros/humble/setup.bash &&
@@ -85,7 +84,7 @@ docker compose -f docker/docker-compose.demo.yml exec adapter \
     '
 ```
 
-Expected output for step 6 (empty `job_id` request → adapter assigns one
+Expected output for step 5 (empty `job_id` request → adapter assigns one
 as `J-<8 hex chars>`):
 
 ```

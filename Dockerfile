@@ -73,6 +73,11 @@ COPY scripts/ ./scripts/
 #   docker compose exec adapter bash /app/examples/<...>.sh
 # without mounting the host repo.
 COPY examples/ ./examples/
+# project_mapping.json is referenced by .env.example (and required by
+# workers/project_sync.py to resolve a Project code to the Odoo product
+# behind it). Ship it inside the image so the demo flow works on a
+# fresh clone without extra mounts.
+COPY project_mapping.json ./project_mapping.json
 
 # Create log directory
 RUN mkdir -p /app/logs

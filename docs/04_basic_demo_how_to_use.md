@@ -56,7 +56,9 @@ In the real cell this happens in two ways:
 In the demo we simulate the first path: post a `Project` directly to
 Orion-LD using the sample payload. The adapter receives Orion's
 subscription notification on `POST /orion/notifications`, resolves the
-BOM via the Odoo mock, and creates a `Reservation` (and any `Shortage`).
+BOM for `DEMO-CTRL → CTRL-PANEL-A1` via the Odoo mock, then writes
+either a `Reservation` (if stock is sufficient) or a `Shortage` (if
+not).
 
 ```bash
 # Create a Project in Orion-LD.
@@ -65,31 +67,58 @@ bash examples/curl/03_orion_create_project.sh
 #    Location: .../ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1
 #    (the exact Location header is implementation-dependent — what matters
 #     is the 201 and that the entity is now retrievable by id)
+```
 
-# After 1-2 s, the adapter has materialised the Reservation.
-bash examples/curl/04_list_entities.sh Reservation
+The default mock stock in `docker/odoo-mock/data/stock.json` is
+**intentionally short** on one of the CTRL-PANEL-A1 BOM components
+(`WAGO-221-412`), so on a fresh demo run the adapter takes the **shortage
+branch** of the BOM-resolution worker and writes a `Shortage` entity:
+
+```bash
+# After 1-2 s, list shortages.
+bash examples/curl/04_list_entities.sh Shortage
 # -> [
 #      {
-#        "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
-#        "type": "Reservation",
+#        "id": "urn:ngsi-ld:Shortage:demo-ctrl-1",
+#        "type": "Shortage",
 #        "projectRef": {"type":"Relationship","object":"urn:ngsi-ld:Project:demo-ctrl-1"},
-#        "status": {"type":"Property","value":"pending"},
-#        "source": {"type":"Property","value":"odoo"},
+#        "status": {"type":"Property","value":"open"},
 #        "lines": {"type":"Property",
-#                  "value":[{"sku":"SCH-REL-24V","qty":1,"unit":"Unit"},
-#                           {"sku":"ABB-MCB-10A","qty":2,"unit":"Unit"}]},
-#        "createdAt": {"type":"Property","value":"2026-05-27T15:00:00Z"},
+#                  "value":[{"sku":"WAGO-221-412","missingQty":...,"requiredQty":...,
+#                           "availableQty":...,"unit":"Unit"}]},
 #        ...
 #      }
 #    ]
+# And the Project status moved from 'requested' to 'shortage' (see the
+# Project schema's status enum: requested / processing / shortage / ready
+# / blocked / running / completed / cancelled).
+bash examples/curl/04_list_entities.sh Project | \
+    jq '.[] | select(.id=="urn:ngsi-ld:Project:demo-ctrl-1") | .status.value'
+# -> "shortage"
 ```
 
-If the BOM cannot be fully satisfied (the mock data includes a deliberate
-gap in some scenarios), there will also be a `Shortage` entity. List
-them with `bash examples/curl/04_list_entities.sh Shortage`.
+To exercise the **Reservation branch** instead, top up the short SKU in
+the Odoo mock before creating the Project (or pick a project whose BOM
+fits the seeded stock):
+
+```bash
+# Top up WAGO-221-412 stock to clear the shortage.
+SKU=WAGO-221-412 QUANTITY=20 bash examples/curl/06_admin_inventory_sync.sh
+# Then re-trigger the BOM resolution.
+curl -sX POST http://localhost:8080/admin/recompute/demo-ctrl-1
+
+# Now the adapter writes a Reservation.
+bash examples/curl/04_list_entities.sh Reservation
+# -> [{"id":"urn:ngsi-ld:Reservation:demo-ctrl-1",
+#      "status":{"type":"Property","value":"pending"},
+#      "source":{"type":"Property","value":"odoo"},
+#      "lines":{"type":"Property","value":[ ...BOM lines... ]}, ...}]
+```
 
 **What this proves.** The HTTP / NGSI-LD face of the adapter is wired,
-the Odoo client is reachable, and the BOM-resolution path is functional.
+the Odoo client is reachable, and **both** branches of the
+BOM-resolution worker (Reservation when stock is sufficient, Shortage
+when it isn't) are functional.
 
 ## Stage 2 — Mission Controller requests a warehouse pick
 
@@ -135,8 +164,9 @@ docker compose ... exec adapter bash -lc '
 ```
 
 **What this proves.** The ROS 2 / DDS face is reachable and the
-WarehouseClient abstraction (mocked here, Hänel SOAP in production)
-drives the right state transitions.
+`WarehouseClient` abstraction (mocked here by `NullWarehouseClient`;
+`HanelHostComClient` raw TCP — or the legacy `HanelSoapClient` — in
+production) drives the right state transitions.
 
 ## Stage 3 — cobot picks → adapter decrements stock
 
@@ -191,7 +221,7 @@ docker compose ... exec adapter bash -lc '
 # response: hermes_msgs.srv.ProduceStock_Response(success=True)
 ```
 
-And patch the `Project.status` to `complete` via the digital twin's
+And patch the `Project.status` to `completed` via the digital twin's
 NGSI-LD endpoint (the HoloLens AR app does this in the real system —
 here we patch it by hand):
 
