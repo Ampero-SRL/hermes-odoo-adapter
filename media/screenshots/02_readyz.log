@@ -1,0 +1,19 @@
+# /readyz — subsystem health (Odoo, Orion, warehouse, ROS 2)
+# captured 2026-06-10 from a fresh clone
+
+$ curl -s http://localhost:8080/readyz | jq .
+{
+    "status": "ready",
+    "checks": {
+        "odoo": true,
+        "orion": true,
+        "warehouse": true,
+        "ros2": true
+    },
+    "details": {
+        "odoo": "Connected",
+        "orion": "Connected",
+        "warehouse": "Connected (null)",
+        "ros2": "Node 'hermes_adapter' running"
+    }
+}
