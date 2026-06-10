@@ -26,7 +26,7 @@ after this.
 The "Hello World" path uses **only mocks**. No real cobot, no real
 warehouse, no real ERP.
 
-## Hello World — five commands
+## Hello World — six commands
 
 The whole purpose of this section: a fresh reviewer clones the repo, runs
 these commands, and sees a known-good response in under five minutes.
@@ -36,17 +36,22 @@ these commands, and sees a known-good response in under five minutes.
 git clone https://github.com/Ampero-SRL/hermes-odoo-adapter
 cd hermes-odoo-adapter
 
-# 2) Bring up the demo stack (adapter + Orion-LD + Mongo + Odoo mock + the
+# 2) Provide the runtime config. .env is gitignored and the demo compose
+#    file expects it; the shipped .env.example contains sensible
+#    NullWarehouseClient defaults.
+cp .env.example .env
+
+# 3) Bring up the demo stack (adapter + Orion-LD + Mongo + Odoo mock + the
 #    NullWarehouseClient). The first run pulls the Vulcanexus Humble base
 #    image (~2 GB) — subsequent runs reuse the layer cache.
 docker compose -f docker/docker-compose.demo.yml up -d
 
-# 3) Wait for the adapter health endpoint to return ok (typically <30 s).
+# 4) Wait for the adapter health endpoint to return ok (typically <30 s).
 until curl -sf http://localhost:8080/healthz > /dev/null; do sleep 2; done
 curl -s http://localhost:8080/healthz | jq .
 ```
 
-Expected output for step 3 (the liveness probe is intentionally cheap —
+Expected output for step 4 (the liveness probe is intentionally cheap —
 it does not check the backing subsystems):
 
 ```json
@@ -62,29 +67,29 @@ For per-subsystem readiness (Odoo / Orion / warehouse / ROS 2), hit
 [`../examples/curl/02_readyz.sh`](../examples/curl/02_readyz.sh).
 
 ```bash
-# 4) Confirm the NGSI-LD entities the adapter exposes.
+# 5) Confirm the NGSI-LD entities the adapter exposes.
 curl -s -H "Accept: application/ld+json" \
   http://localhost:1026/ngsi-ld/v1/entities?type=Project | jq '.[0].id'
 # -> "urn:ngsi-ld:Project:<demo-project-id>" (from the seed scripts)
 ```
 
 ```bash
-# 5) Call one ROS 2 service against the adapter from a Vulcanexus shell.
+# 6) Call one ROS 2 service against the adapter from a Vulcanexus shell.
 docker compose -f docker/docker-compose.demo.yml exec adapter \
     bash -lc '
         source /opt/ros/humble/setup.bash &&
         source /opt/hermes_ws/install/setup.bash &&
         ros2 service call /hermes/warehouse/pick \
             hermes_msgs/srv/WarehousePick \
-            "{job_id: \"\", sku: \"ARTICOLO5\", quantity: 1}"
+            "{job_id: \"\", sku: \"SCH-REL-24V\", quantity: 1}"
     '
 ```
 
-Expected output for step 5 (empty `job_id` request → adapter assigns one
+Expected output for step 6 (empty `job_id` request → adapter assigns one
 as `J-<8 hex chars>`):
 
 ```
-requester: making request: hermes_msgs.srv.WarehousePick_Request(job_id='', sku='ARTICOLO5', quantity=1)
+requester: making request: hermes_msgs.srv.WarehousePick_Request(job_id='', sku='SCH-REL-24V', quantity=1)
 response:
 hermes_msgs.srv.WarehousePick_Response(success=True, job_id='J-1a2b3c4d', error='')
 ```

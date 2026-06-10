@@ -8,14 +8,14 @@
 # Expected response shape (main.py:476-480):
 #   {
 #     "status": "ok",
-#     "message": "Consumed 1 units of ARTICOLO5",
+#     "message": "Consumed 1 units of SCH-REL-24V",
 #     "details": { ... Odoo stock-move result ... }
 #   }
 
 set -euo pipefail
 : "${ADAPTER_URL:=http://localhost:8080}"
-: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-project-1}"
-: "${SKU:=ARTICOLO5}"
+: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-ctrl-1}"
+: "${SKU:=SCH-REL-24V}"
 : "${QUANTITY:=1}"
 
 curl -sS \

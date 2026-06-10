@@ -62,7 +62,7 @@ BOM via the Odoo mock, and creates a `Reservation` (and any `Shortage`).
 # Create a Project in Orion-LD.
 bash examples/curl/03_orion_create_project.sh
 # -> HTTP/1.1 201 Created
-#    Location: .../ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-1
+#    Location: .../ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1
 #    (the exact Location header is implementation-dependent — what matters
 #     is the 201 and that the entity is now retrievable by id)
 
@@ -70,14 +70,14 @@ bash examples/curl/03_orion_create_project.sh
 bash examples/curl/04_list_entities.sh Reservation
 # -> [
 #      {
-#        "id": "urn:ngsi-ld:Reservation:demo-project-1",
+#        "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
 #        "type": "Reservation",
-#        "projectRef": {"type":"Relationship","object":"urn:ngsi-ld:Project:demo-project-1"},
+#        "projectRef": {"type":"Relationship","object":"urn:ngsi-ld:Project:demo-ctrl-1"},
 #        "status": {"type":"Property","value":"pending"},
 #        "source": {"type":"Property","value":"odoo"},
 #        "lines": {"type":"Property",
-#                  "value":[{"sku":"ARTICOLO5","qty":1,"unit":"Unit"},
-#                           {"sku":"ARTICOLO6","qty":2,"unit":"Unit"}]},
+#                  "value":[{"sku":"SCH-REL-24V","qty":1,"unit":"Unit"},
+#                           {"sku":"ABB-MCB-10A","qty":2,"unit":"Unit"}]},
 #        "createdAt": {"type":"Property","value":"2026-05-27T15:00:00Z"},
 #        ...
 #      }
@@ -159,9 +159,9 @@ docker compose ... exec adapter bash -lc '
 # Confirm the NGSI-LD side — InventoryItem splits stock across
 # available / reserved / total (see contracts/schemas/InventoryItem.schema.json).
 bash examples/curl/04_list_entities.sh InventoryItem | \
-    jq '.[] | select(.sku.value=="ARTICOLO5")
+    jq '.[] | select(.sku.value=="SCH-REL-24V")
         | {sku: .sku.value, available: .available.value, total: .total.value}'
-# -> {"sku":"ARTICOLO5","available":11,"total":11}    (was 12, now 11)
+# -> {"sku":"SCH-REL-24V","available":11,"total":11}    (was 12, now 11)
 ```
 
 Watch the DDS topic in another shell to confirm the publish:
@@ -172,7 +172,7 @@ docker compose ... exec adapter bash -lc '
     source /opt/hermes_ws/install/setup.bash &&
     timeout 5 ros2 topic echo --once /hermes/inventory_updates
 '
-# sku: ARTICOLO5
+# sku: SCH-REL-24V
 # quantity_delta: -1
 # location: ...
 ```
@@ -199,8 +199,10 @@ here we patch it by hand):
 curl -sS -X PATCH \
     -H "Content-Type: application/json" \
     -H "Link: <http://localhost:8080/context.jsonld>; rel=\"http://www.w3.org/ns/json-ld#context\"; type=\"application/ld+json\"" \
-    "http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-1/attrs" \
-    -d '{"status": {"type":"Property","value":"complete"}}'
+    "http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1/attrs" \
+    -d '{"status": {"type":"Property","value":"completed"}}'
+# Note: the Project.status enum is requested / ready / blocked / running /
+# completed / cancelled (Project.schema.json); "completed", not "complete".
 ```
 
 **What this proves.** The full lifecycle (order placed → tray retrieved

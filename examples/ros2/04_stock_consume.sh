@@ -13,8 +13,8 @@
 #       success=True, remaining=11.0)
 
 set -euo pipefail
-: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-project-1}"
-: "${SKU:=ARTICOLO5}"
+: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-ctrl-1}"
+: "${SKU:=SCH-REL-24V}"
 : "${QUANTITY:=1}"
 
 ros2 service call /hermes/stock/consume \

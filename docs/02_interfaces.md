@@ -13,8 +13,12 @@ The adapter exposes four interfaces:
 | 3 | **Local HTTP / FastAPI** | HTTP REST | Health, metrics, webhooks, admin |
 | 4 | **ROS4HRI Intent** | DDS (Fast-DDS) | Any ROS4HRI-aware consumer |
 
-Outbound, the adapter also talks **Odoo JSON-RPC** and **Hänel HOST-COM (SOAP 1.1)**;
-those are integration outputs, not part of the published interface contract.
+Outbound, the adapter also talks **Odoo JSON-RPC** and the **Hänel**
+warehouse — by default through `HanelHostComClient` (raw TCP HOST-COM
+telegrams, port 2200), with a legacy `HanelSoapClient` (HOST-WEB SOAP 1.1
+against `/ws/com?wsdl`) selectable via the `WAREHOUSE_BACKEND` env var.
+Those are integration outputs, not part of the published interface
+contract.
 
 ---
 
@@ -70,7 +74,7 @@ entrypoint.
 
 # 1) Request a warehouse pick. Empty job_id → server assigns one as J-<8 hex>.
 ros2 service call /hermes/warehouse/pick hermes_msgs/srv/WarehousePick \
-  "{job_id: '', sku: 'ARTICOLO5', quantity: 10}"
+  "{job_id: '', sku: 'SCH-REL-24V', quantity: 10}"
 # -> response: hermes_msgs.srv.WarehousePick_Response(
 #       success=True, job_id='J-1a2b3c4d', error='')
 
@@ -83,7 +87,7 @@ ros2 service call /hermes/warehouse/status hermes_msgs/srv/WarehousePickStatus \
 # 3) After the cobot picks, decrement stock. Note the .srv has no
 #    `operator` field — only project_id / sku / quantity.
 ros2 service call /hermes/stock/consume hermes_msgs/srv/ConsumeStock \
-  "{project_id: 'urn:ngsi-ld:Project:demo-project-1', sku: 'ARTICOLO5', quantity: 1}"
+  "{project_id: 'urn:ngsi-ld:Project:demo-ctrl-1', sku: 'SCH-REL-24V', quantity: 1}"
 # -> response: hermes_msgs.srv.ConsumeStock_Response(
 #       success=True, remaining=11.0)
 ```
@@ -101,7 +105,7 @@ GET) against an Orion-LD broker:
 
 | Entity type | Purpose | Schema | Owner |
 |---|---|---|---|
-| `Project` | A manufacturing job derived from an Odoo MO. Carries `code`, `station`, `status`. | [`contracts/schemas/Project.schema.json`](../contracts/schemas/Project.schema.json) | Mission Controller creates; adapter syncs assemblyStatus. |
+| `Project` | A manufacturing job derived from an Odoo MO. Carries `code`, `station`, `status` (enum: `requested` / `ready` / `blocked` / `running` / `completed` / `cancelled`). | [`contracts/schemas/Project.schema.json`](../contracts/schemas/Project.schema.json) | Mission Controller (or HoloLens AR app) creates; adapter PATCHes `status` as the assembly progresses. |
 | `Reservation` | The BOM-line reservation for a `Project` — what components have to be picked. | [`contracts/schemas/Reservation.schema.json`](../contracts/schemas/Reservation.schema.json) | Adapter creates / patches. |
 | `Shortage` | A reservation line that cannot be satisfied from stock right now. | [`contracts/schemas/Shortage.schema.json`](../contracts/schemas/Shortage.schema.json) | Adapter creates. |
 | `InventoryItem` | Current stock level of a SKU. | [`contracts/schemas/InventoryItem.schema.json`](../contracts/schemas/InventoryItem.schema.json) | Adapter syncs from Odoo + warehouse. |
@@ -118,9 +122,9 @@ want partial updates. `total = available + reserved`.
 
 ```json
 {
-  "id": "urn:ngsi-ld:InventoryItem:ARTICOLO5",
+  "id": "urn:ngsi-ld:InventoryItem:SCH-REL-24V",
   "type": "InventoryItem",
-  "sku":       {"type": "Property", "value": "ARTICOLO5"},
+  "sku":       {"type": "Property", "value": "SCH-REL-24V"},
   "available": {"type": "Property", "value": 12, "unitCode": "Unit"},
   "reserved":  {"type": "Property", "value": 0,  "unitCode": "Unit"},
   "total":     {"type": "Property", "value": 12, "unitCode": "Unit"},
@@ -139,8 +143,8 @@ of `{sku, qty, unit}` objects, **not** a JSON-encoded string:
 "lines": {
   "type": "Property",
   "value": [
-    {"sku": "ARTICOLO5", "qty": 1, "unit": "Unit"},
-    {"sku": "ARTICOLO6", "qty": 2, "unit": "Unit"}
+    {"sku": "SCH-REL-24V", "qty": 1, "unit": "Unit"},
+    {"sku": "ABB-MCB-10A", "qty": 2, "unit": "Unit"}
   ]
 }
 ```
@@ -206,9 +210,14 @@ for the **admin / debug** surface during integration.
 ### Position: **Used — mapped, publisher implementation pending (Sprint 0.4)**
 
 The adapter will publish [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
-for the inputs it ingests that originate from a human (planner or operator),
-reusing the standard `Intent.intent` constants where they fit and adding
-domain-specific labels where they don't. **No message extension** — the
+for the human-originated inputs **it directly ingests** — which in this
+repo means **only the Odoo planner manufacturing-order intent**.
+Operator-side intents (HoloLens project-selection, placement confirmation,
+assembly-complete) live in companion ROS 2 nodes closer to their source
+(`hermes_main/ar_bridge_node`, a future companion next to
+`hermes_main/hololens_api`) and are mapped in [`D4_PLAN.md`](D4_PLAN.md) §4.4.
+The adapter re-uses the standard `Intent.intent` constants where they
+fit and adds domain-specific labels where they don't. **No message extension** — the
 `hri_actions_msgs/Intent` envelope is used as-is, with a free-form
 `intent` string and a JSON `data` payload for the thematic roles.
 

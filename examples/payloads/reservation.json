@@ -1,9 +1,9 @@
 {
-  "id": "urn:ngsi-ld:Reservation:demo-project-1",
+  "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
   "type": "Reservation",
   "projectRef": {
     "type": "Relationship",
-    "object": "urn:ngsi-ld:Project:demo-project-1"
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
   },
   "status": {
     "type": "Property",
@@ -16,8 +16,9 @@
   "lines": {
     "type": "Property",
     "value": [
-      {"sku": "ARTICOLO5", "qty": 1, "unit": "Unit"},
-      {"sku": "ARTICOLO6", "qty": 2, "unit": "Unit"}
+      {"sku": "SCH-REL-24V",  "qty": 2, "unit": "Unit"},
+      {"sku": "ABB-MCB-10A",  "qty": 1, "unit": "Unit"},
+      {"sku": "DIN-TERM-2.5", "qty": 4, "unit": "Unit"}
     ]
   },
   "createdAt": {

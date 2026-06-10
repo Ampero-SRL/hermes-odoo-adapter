@@ -19,7 +19,8 @@ industrial protocols used in a mixed-robotics assembly cell:
               │   (rclpy + FastAPI in one proc)  │
               └──────────┬────────────┬──────────┘
                          │            │
-                JSON-RPC │            │ SOAP 1.1
+                JSON-RPC │            │ HOST-COM (raw TCP) — default
+                         │            │ HOST-WEB SOAP 1.1 — legacy
                          ▼            ▼
                  ┌────────────┐  ┌────────────────┐
                  │  Odoo ERP  │  │  Hänel ASRS    │
@@ -35,8 +36,11 @@ industrial protocols used in a mixed-robotics assembly cell:
   them in sync with the Odoo source of truth.
 - **JSON-RPC (Odoo)**: BOM resolution, manufacturing-order polling, stock
   moves.
-- **SOAP 1.1 (Hänel HOST-COM)**: tray retrieval and inventory reconciliation
-  against the vertical lift.
+- **Hänel HOST-COM (raw TCP telegrams, port 2200)**: tray retrieval and
+  inventory reconciliation against the vertical lift. This is the default
+  production backend (`HanelHostComClient`). A legacy **HOST-WEB SOAP 1.1**
+  backend (`HanelSoapClient`, against `http://<IP>/ws/com?wsdl`) is also
+  kept for Hänel installations that expose the SOAP/JWS interface only.
 
 ## Why the module exists
 
@@ -92,9 +96,11 @@ demonstrator pipeline, see [`05_role_in_demonstrator.md`](05_role_in_demonstrato
   but does not detect components itself.
 - Not a generic ERP middleware — it speaks Odoo's JSON-RPC dialect specifically
   (extending to other ERPs is a clean `OdooClient` reimplementation, ~500 LOC).
-- Not a hardware abstraction layer for the warehouse — only Hänel (via
-  `HanelSoapClient`) is implemented; the `WarehouseClient` ABC is the
-  reimplement-here-for-your-vendor seam.
+- Not a hardware abstraction layer for the warehouse — only Hänel is
+  implemented today (`HanelHostComClient` for raw TCP HOST-COM, default;
+  `HanelSoapClient` for legacy HOST-WEB SOAP). The `WarehouseClient` ABC
+  in [`src/hermes_odoo_adapter/warehouse/`](../src/hermes_odoo_adapter/warehouse/)
+  is the reimplement-here-for-your-vendor seam.
 
 ## Next reading
 
