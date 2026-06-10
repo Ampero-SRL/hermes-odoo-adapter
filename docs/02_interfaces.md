@@ -20,18 +20,20 @@ those are integration outputs, not part of the published interface contract.
 
 ## 1. ROS 2 / Vulcanexus
 
-Node name: `hermes_odoo_adapter`. Runs in a background thread inside the
-FastAPI process (single container, single DDS participant).
+Node name: `hermes_adapter` (the default of `settings.ros2_node_name`;
+the `ROS2_NODE_NAME` env var overrides it). The node runs in a
+background thread inside the FastAPI process, so the adapter is a
+single container with a single DDS participant.
 
 ### Services
 
-| Service | Type | Direction | Purpose |
-|---|---|---|---|
-| `/hermes/warehouse/pick` | `hermes_msgs/srv/WarehousePick` | Server | Initiate a tray retrieval. Returns a `job_id` the caller polls with the next service. |
-| `/hermes/warehouse/status` | `hermes_msgs/srv/WarehousePickStatus` | Server | Poll a pick job's progress (`pending` / `presenting` / `ready` / `failed`). |
-| `/hermes/warehouse/cancel` | `hermes_msgs/srv/WarehousePickCancel` | Server | Cancel an in-flight retrieval. |
-| `/hermes/stock/consume` | `hermes_msgs/srv/ConsumeStock` | Server | Decrement Odoo stock + NGSI-LD `InventoryItem.quantity` after a cobot pick. |
-| `/hermes/stock/produce` | `hermes_msgs/srv/ProduceStock` | Server | Increment finished-product stock at end of assembly. |
+| Service | Type | Direction | Request | Response | Purpose |
+|---|---|---|---|---|---|
+| `/hermes/warehouse/pick` | `hermes_msgs/srv/WarehousePick` | Server | `string job_id, string sku, int32 quantity` | `bool success, string job_id, string error` | Initiate a tray retrieval. Empty `job_id` → the adapter assigns one as `J-<8 hex chars>`. |
+| `/hermes/warehouse/status` | `hermes_msgs/srv/WarehousePickStatus` | Server | `string job_id` | `string status, string slot, bool tray_ready` | Poll a pick job. `status` is one of `submitted` / `presenting` / `ready` / `failed`; `slot` is e.g. `L1-S7` (Hänel) or `NULL-A1` (mock). |
+| `/hermes/warehouse/cancel` | `hermes_msgs/srv/WarehousePickCancel` | Server | `string job_id` | `bool success` | Cancel an in-flight retrieval. |
+| `/hermes/stock/consume` | `hermes_msgs/srv/ConsumeStock` | Server | `string project_id, string sku, int32 quantity` | `bool success, float64 remaining` | Decrement Odoo stock + PATCH the matching `InventoryItem` after a cobot pick + publish on `/hermes/inventory_updates`. |
+| `/hermes/stock/produce` | `hermes_msgs/srv/ProduceStock` | Server | `string project_id, string sku, int32 quantity` | `bool success` | Increment finished-product stock at end of assembly. |
 
 The `.srv` definitions live in the vendored `ros2_ws/src/hermes_msgs/`
 package (see `VENDORED_FROM.md` there).
@@ -40,11 +42,11 @@ package (see `VENDORED_FROM.md` there).
 
 | Topic | Type | Direction | QoS | Purpose |
 |---|---|---|---|---|
-| `/hermes/inventory_updates` | `hermes_msgs/msg/InventoryUpdate` | **Publish** | default | Stock-change events emitted by the adapter (depth 10). |
-| `/hermes/warehouse/tray_state` | `std_msgs/Int16` | **Publish** | latched (KEEP_LAST/1, TRANSIENT_LOCAL, RELIABLE) | Current tray id at the Hänel pickup point; latched so late joiners see the value. |
-| `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | **Publish** | default | Per-subsystem health (warehouse / Odoo / Orion). |
+| `/hermes/inventory_updates` | `hermes_msgs/msg/InventoryUpdate` | **Publish** | default (KEEP_LAST/10) | Stock-change events emitted by the adapter. |
+| `/hermes/warehouse/tray_state` | `std_msgs/Int16` | **Publish** | latched: `KEEP_LAST/1` + `TRANSIENT_LOCAL` (reliability inherited from default) | Current tray id at the Hänel pickup point; latched so late joiners see the last value. |
+| `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | **Publish** | default | Per-subsystem health (warehouse / Odoo / Orion / ROS 2). Published once per second by a timer. |
 | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | **Subscribe** | default | Mission-controller state stream — the adapter parses the JSON and applies the relevant NGSI-LD patches. |
-| `/humans/intents` *(planned, Sprint 0.4)* | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see §4 below. |
+| `/humans/intents` *(planned, Sprint 0.4)* | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see §4 below. The publisher is **not yet implemented** in this adapter; once it lands, this row will lose the *(planned)* tag. |
 
 ### Parameters
 
@@ -66,20 +68,24 @@ entrypoint.
 ```bash
 # In a Vulcanexus / ROS 2 Humble shell with the adapter running.
 
-# 1) Request a warehouse pick. Empty job_id → server assigns one.
+# 1) Request a warehouse pick. Empty job_id → server assigns one as J-<8 hex>.
 ros2 service call /hermes/warehouse/pick hermes_msgs/srv/WarehousePick \
   "{job_id: '', sku: 'ARTICOLO5', quantity: 10}"
-# -> response: success=true, job_id='M<timestamp>-<hex>', error=''
+# -> response: hermes_msgs.srv.WarehousePick_Response(
+#       success=True, job_id='J-1a2b3c4d', error='')
 
-# 2) Poll the pick status.
+# 2) Poll the pick status. Slot for NullWarehouseClient is 'NULL-A1'.
 ros2 service call /hermes/warehouse/status hermes_msgs/srv/WarehousePickStatus \
-  "{job_id: 'M<...>'}"
-# -> response: status='presenting'|'ready'|..., slot=8, tray_ready=true|false
+  "{job_id: 'J-1a2b3c4d'}"
+# -> response: hermes_msgs.srv.WarehousePickStatus_Response(
+#       status='ready', slot='NULL-A1', tray_ready=True)
 
-# 3) After the cobot picks, decrement stock.
+# 3) After the cobot picks, decrement stock. Note the .srv has no
+#    `operator` field — only project_id / sku / quantity.
 ros2 service call /hermes/stock/consume hermes_msgs/srv/ConsumeStock \
-  "{sku: 'ARTICOLO5', quantity: 1, project_id: 'P1', operator: 'cobot-1'}"
-# -> response: success=true
+  "{project_id: 'urn:ngsi-ld:Project:demo-project-1', sku: 'ARTICOLO5', quantity: 1}"
+# -> response: hermes_msgs.srv.ConsumeStock_Response(
+#       success=True, remaining=11.0)
 ```
 
 More command samples live in [`examples/ros2/`](../examples/ros2/).
@@ -106,13 +112,18 @@ that wants to fetch it directly from the running instance.
 
 ### Sample payload — `InventoryItem`
 
+The schema splits stock across three properties — `available`, `reserved`
+and `total` — so consumers can subscribe to a single property if they
+want partial updates. `total = available + reserved`.
+
 ```json
 {
   "id": "urn:ngsi-ld:InventoryItem:ARTICOLO5",
   "type": "InventoryItem",
-  "sku": {"type": "Property", "value": "ARTICOLO5"},
-  "quantity": {"type": "Property", "value": 12},
-  "warehouseState": {"type": "Property", "value": "available"},
+  "sku":       {"type": "Property", "value": "ARTICOLO5"},
+  "available": {"type": "Property", "value": 12, "unitCode": "Unit"},
+  "reserved":  {"type": "Property", "value": 0,  "unitCode": "Unit"},
+  "total":     {"type": "Property", "value": 12, "unitCode": "Unit"},
   "updatedAt": {"type": "Property", "value": "2026-05-27T15:42:00Z"},
   "@context": [
     "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
@@ -120,6 +131,24 @@ that wants to fetch it directly from the running instance.
   ]
 }
 ```
+
+A `Reservation` carries the BOM lines as a structured value — an array
+of `{sku, qty, unit}` objects, **not** a JSON-encoded string:
+
+```json
+"lines": {
+  "type": "Property",
+  "value": [
+    {"sku": "ARTICOLO5", "qty": 1, "unit": "Unit"},
+    {"sku": "ARTICOLO6", "qty": 2, "unit": "Unit"}
+  ]
+}
+```
+
+A `Shortage` is one entity *per project* (`urn:ngsi-ld:Shortage:{project}`),
+with a `lines` value listing every short SKU and its `missingQty` /
+`requiredQty` / `availableQty`. See [`examples/payloads/`](../examples/payloads/)
+for canonical samples of each entity.
 
 See [`examples/payloads/`](../examples/payloads/) for a sample per entity type.
 
@@ -174,14 +203,22 @@ for the **admin / debug** surface during integration.
 
 ## 4. ROS4HRI / ROS4RI Intent
 
-### Position: **Used** — `hri_actions_msgs/Intent`
+### Position: **Used — mapped, publisher implementation pending (Sprint 0.4)**
 
-The adapter publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
+The adapter will publish [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
 for the inputs it ingests that originate from a human (planner or operator),
 reusing the standard `Intent.intent` constants where they fit and adding
 domain-specific labels where they don't. **No message extension** — the
 `hri_actions_msgs/Intent` envelope is used as-is, with a free-form
 `intent` string and a JSON `data` payload for the thematic roles.
+
+> **Implementation status.** The mapping below is the canonical plan;
+> the actual publisher code is **not yet in `ros2_node.py`** as of the D4
+> Sprint 1 cut. The mapping table is locked, but a few mentor questions
+> (canonical topic name, custom-label acceptance) are still open — see
+> [`D4_PLAN.md`](D4_PLAN.md) §4.4. Sprint 0.4 lands the implementation;
+> until then this section documents the contract the adapter targets,
+> not what it emits today.
 
 ### Intent topology
 

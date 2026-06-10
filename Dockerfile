@@ -68,6 +68,11 @@ ENV PYTHONPATH=/app/src
 COPY src/ ./src/
 COPY contracts/ ./contracts/
 COPY scripts/ ./scripts/
+# Ship `examples/` inside the image so reviewers can invoke the
+# hello-world / basic-demo scripts via
+#   docker compose exec adapter bash /app/examples/<...>.sh
+# without mounting the host repo.
+COPY examples/ ./examples/
 
 # Create log directory
 RUN mkdir -p /app/logs

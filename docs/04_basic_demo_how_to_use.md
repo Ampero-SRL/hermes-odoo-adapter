@@ -35,9 +35,11 @@ Confirm health before continuing:
 
 ```bash
 bash examples/curl/01_healthz.sh
-# -> {"status":"ok",...}
+# -> {"status":"healthy","service":"hermes-odoo-adapter","version":"2.0.0"}
 bash examples/curl/02_readyz.sh
-# -> {"ready":true,...}
+# -> {"status":"ready","checks":{"odoo":true,"orion":true,"warehouse":true,"ros2":true},
+#     "details":{"odoo":"Connected","orion":"Connected","warehouse":"Connected (null)",
+#                "ros2":"Node 'hermes_adapter' running"}}
 ```
 
 ## Stage 1 — operator (or planner) places a manufacturing order
@@ -60,7 +62,9 @@ BOM via the Odoo mock, and creates a `Reservation` (and any `Shortage`).
 # Create a Project in Orion-LD.
 bash examples/curl/03_orion_create_project.sh
 # -> HTTP/1.1 201 Created
-#    Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-1
+#    Location: .../ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-1
+#    (the exact Location header is implementation-dependent — what matters
+#     is the 201 and that the entity is now retrievable by id)
 
 # After 1-2 s, the adapter has materialised the Reservation.
 bash examples/curl/04_list_entities.sh Reservation
@@ -70,7 +74,11 @@ bash examples/curl/04_list_entities.sh Reservation
 #        "type": "Reservation",
 #        "projectRef": {"type":"Relationship","object":"urn:ngsi-ld:Project:demo-project-1"},
 #        "status": {"type":"Property","value":"pending"},
-#        "lines": {"type":"Property","value":"[{\"sku\":\"ARTICOLO5\",\"quantity\":1},...]"},
+#        "source": {"type":"Property","value":"odoo"},
+#        "lines": {"type":"Property",
+#                  "value":[{"sku":"ARTICOLO5","qty":1,"unit":"Unit"},
+#                           {"sku":"ARTICOLO6","qty":2,"unit":"Unit"}]},
+#        "createdAt": {"type":"Property","value":"2026-05-27T15:00:00Z"},
 #        ...
 #      }
 #    ]
@@ -97,20 +105,21 @@ docker compose -f docker/docker-compose.demo.yml exec adapter \
     '
 # response:
 #   hermes_msgs.srv.WarehousePick_Response(
-#       success=True, job_id='M1717-7a3c1b', error='')
+#       success=True, job_id='J-1a2b3c4d', error='')
 ```
 
-Capture the returned `job_id` and poll the status:
+Capture the returned `job_id` (format `J-<8 hex chars>`) and poll the
+status:
 
 ```bash
 docker compose ... exec adapter bash -lc '
     source /opt/ros/humble/setup.bash &&
     source /opt/hermes_ws/install/setup.bash &&
-    JOB_ID="M1717-7a3c1b" bash /app/examples/ros2/02_warehouse_status.sh
+    JOB_ID="J-1a2b3c4d" bash /app/examples/ros2/02_warehouse_status.sh
 '
 # response (NullWarehouseClient returns ready quickly):
 #   hermes_msgs.srv.WarehousePickStatus_Response(
-#       status='ready', slot=0, tray_ready=True, error='')
+#       status='ready', slot='NULL-A1', tray_ready=True)
 ```
 
 Meanwhile the `/hermes/warehouse/tray_state` topic carries the latched
@@ -135,7 +144,7 @@ After the (mock) cobot picks the component, the Mission Controller calls
 the adapter's stock-decrement service. The adapter:
 
 1. Posts the stock move to the Odoo mock (decrementing the SKU quantity).
-2. PATCHes the corresponding `InventoryItem.quantity` in Orion-LD.
+2. PATCHes the corresponding `InventoryItem` (`available` / `total`) in Orion-LD.
 3. Publishes an `InventoryUpdate` event on `/hermes/inventory_updates`.
 
 ```bash
@@ -145,12 +154,14 @@ docker compose ... exec adapter bash -lc '
     bash /app/examples/ros2/04_stock_consume.sh
 '
 # response:
-#   hermes_msgs.srv.ConsumeStock_Response(success=True, error='')
+#   hermes_msgs.srv.ConsumeStock_Response(success=True, remaining=11.0)
 
-# Confirm the NGSI-LD side.
+# Confirm the NGSI-LD side — InventoryItem splits stock across
+# available / reserved / total (see contracts/schemas/InventoryItem.schema.json).
 bash examples/curl/04_list_entities.sh InventoryItem | \
-    jq '.[] | select(.sku.value=="ARTICOLO5") | {sku: .sku.value, qty: .quantity.value}'
-# -> {"sku":"ARTICOLO5","qty":11}    (was 12, now 11)
+    jq '.[] | select(.sku.value=="ARTICOLO5")
+        | {sku: .sku.value, available: .available.value, total: .total.value}'
+# -> {"sku":"ARTICOLO5","available":11,"total":11}    (was 12, now 11)
 ```
 
 Watch the DDS topic in another shell to confirm the publish:
@@ -177,7 +188,7 @@ docker compose ... exec adapter bash -lc '
     source /opt/hermes_ws/install/setup.bash &&
     bash /app/examples/ros2/05_stock_produce.sh
 '
-# response: ProduceStock_Response(success=True, error='')
+# response: hermes_msgs.srv.ProduceStock_Response(success=True)
 ```
 
 And patch the `Project.status` to `complete` via the digital twin's

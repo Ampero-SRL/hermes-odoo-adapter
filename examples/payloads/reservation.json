@@ -9,9 +9,16 @@
     "type": "Property",
     "value": "pending"
   },
+  "source": {
+    "type": "Property",
+    "value": "odoo"
+  },
   "lines": {
     "type": "Property",
-    "value": "[{\"sku\":\"ARTICOLO5\",\"quantity\":1},{\"sku\":\"ARTICOLO6\",\"quantity\":2}]"
+    "value": [
+      {"sku": "ARTICOLO5", "qty": 1, "unit": "Unit"},
+      {"sku": "ARTICOLO6", "qty": 2, "unit": "Unit"}
+    ]
   },
   "createdAt": {
     "type": "Property",
