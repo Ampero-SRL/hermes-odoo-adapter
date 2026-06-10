@@ -97,9 +97,12 @@ The `success=True` + populated `job_id` mean the adapter accepted the
 request and the `NullWarehouseClient` simulated the tray retrieval. The
 hex part of the `job_id` will differ on every call.
 
-If you reached this point: **the adapter is running, NGSI-LD entities are
-populated, and the ROS 2 service face is reachable from a sibling
-container.** That's "Hello World" complete.
+If you reached this point: **the adapter is running, the FastAPI face
+responded, and the ROS 2 service face is reachable from a sibling
+container.** That's "Hello World" complete. Creating NGSI-LD entities
+(`Project` → `Reservation` / `Shortage`) and driving the end-to-end
+Odoo → Orion → ROS 2 pipeline is the basic demo in
+[`04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md).
 
 ## Troubleshooting
 
