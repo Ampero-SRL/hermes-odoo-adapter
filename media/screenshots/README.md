@@ -30,6 +30,10 @@ screenshots and don't depend on any rendering pipeline.
 | [`08_metrics.log`](08_metrics.log) | Adapter `/metrics` Prometheus output — every NGSI-LD operation timing, Odoo call timing, warehouse call counters. Useful for D4 §3.3.9 latency / performance evidence. |
 | [`09_reservation_entity.log`](09_reservation_entity.log) | The `urn:ngsi-ld:Reservation:demo-ctrl-1` entity after the top-up flow: 4 BOM lines (`SCH-REL-24V` ×4, `ABB-MCB-10A` ×2, `DIN-TERM-2.5` ×8, `WAGO-221-412` ×6) under one Reservation, status `pending`, source `odoo`. |
 | [`10_ros2_topics.log`](10_ros2_topics.log) | `ros2 topic list` (best-effort — the ros2 CLI's RPC daemon was flaky inside the test container; the actual topic list is shown definitively in `04_adapter_startup.log`'s "topics:" line). |
+| [`11_grafana_system_health.png`](11_grafana_system_health.png) | Grafana "HERMES — System Health" dashboard rendered with live data from the full compose stack (`docker-compose.full.yml` + `--profile monitoring`). Captured via Playwright after ~5 minutes of synthetic traffic. `Service Health` panel shows the `hermes-adapter` job UP + `prometheus` UP; `Inventory Items Synced` shows the real count from the adapter's inventory worker. |
+| [`12_grafana_manufacturing_ops.png`](12_grafana_manufacturing_ops.png) | Grafana "HERMES — Manufacturing Operations" dashboard. Same run as #11. |
+| [`13_grafana_ros2_dds.png`](13_grafana_ros2_dds.png) | Grafana "ROS 2 / Vulcanexus — DDS Monitoring" dashboard. The ROS 2 metrics exporter isn't in this minimal capture, so several panels show "No data" — the screenshot proves the dashboard structure + the Prometheus → Grafana → Vulcanexus monitoring chain is in place. |
+| [`14_prometheus_targets.png`](14_prometheus_targets.png) | Prometheus targets page: `hermes-adapter` job UP, `prometheus` self-scrape UP. The `hololens-api` + `ros2-metrics` jobs are intentionally DOWN (the corresponding services don't ship in the adapter-only repo; they live in `hermes_main`). |
 
 ## What's still TBD (image / video evidence)
 
