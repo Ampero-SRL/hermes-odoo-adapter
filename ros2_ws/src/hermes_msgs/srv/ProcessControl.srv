@@ -1,0 +1,17 @@
+# Process control service for gesture-based mission control
+# Allows programmatic pause/resume/abort of missions
+
+# Request
+# Command types: PAUSE, RESUME, CONFIRM, ABORT
+string command
+
+# Optional: source of the command (gesture, dashboard, api)
+string source
+
+---
+
+# Response
+bool success
+string message
+# Current mission state after command execution
+string current_state

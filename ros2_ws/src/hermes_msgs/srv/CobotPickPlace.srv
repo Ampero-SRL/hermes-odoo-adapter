@@ -1,0 +1,12 @@
+# Execute a tray-to-AGV pick/place sequence with the cobot.
+# The pick point is expected to already be expressed in the robot base frame.
+
+string sku
+int32 quantity
+string pick_frame
+geometry_msgs/Point pick_point
+bool execute
+---
+bool success
+string error
+string detail

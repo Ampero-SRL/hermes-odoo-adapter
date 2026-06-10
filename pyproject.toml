@@ -2,12 +2,12 @@
 name = "hermes-odoo-adapter"
 version = "2.0.0"
 description = "Hybrid ROS2 + FastAPI adapter for Odoo ERP, FIWARE, and warehouse integration in HERMES"
-authors = ["Francesco Solinas <francesco@yourcompany.com>"]
+authors = ["Francesco Solinas <francesco.solinas@olorin.tech>"]
 license = "Apache-2.0"
 readme = "README.md"
-homepage = "https://github.com/yourorg/hermes_odoo_adapter"
-repository = "https://github.com/yourorg/hermes_odoo_adapter"
-documentation = "https://github.com/yourorg/hermes_odoo_adapter/docs"
+homepage = "https://github.com/Ampero-SRL/hermes-odoo-adapter"
+repository = "https://github.com/Ampero-SRL/hermes-odoo-adapter"
+documentation = "https://github.com/Ampero-SRL/hermes-odoo-adapter/tree/main/docs"
 keywords = ["fiware", "ngsi-ld", "odoo", "manufacturing", "erp", "ros2", "soap", "warehouse"]
 classifiers = [
     "Development Status :: 4 - Beta",

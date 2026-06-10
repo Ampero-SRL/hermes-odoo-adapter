@@ -1,0 +1,32 @@
+{
+  "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
+  "type": "Reservation",
+  "projectRef": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
+  },
+  "status": {
+    "type": "Property",
+    "value": "pending"
+  },
+  "source": {
+    "type": "Property",
+    "value": "odoo"
+  },
+  "lines": {
+    "type": "Property",
+    "value": [
+      {"sku": "SCH-REL-24V",  "qty": 2, "unit": "Unit"},
+      {"sku": "ABB-MCB-10A",  "qty": 1, "unit": "Unit"},
+      {"sku": "DIN-TERM-2.5", "qty": 4, "unit": "Unit"}
+    ]
+  },
+  "createdAt": {
+    "type": "Property",
+    "value": "2026-05-27T15:00:00Z"
+  },
+  "@context": [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "http://localhost:8080/context.jsonld"
+  ]
+}

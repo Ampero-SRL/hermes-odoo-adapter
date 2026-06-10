@@ -1,0 +1,6 @@
+string tray_id
+---
+bool success
+string message
+---
+string status

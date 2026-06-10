@@ -1,0 +1,20 @@
+# ROS 2 message dependencies for the HERMES Odoo Adapter.
+#
+# Use with `vcs import` (https://github.com/dirk-thomas/vcstool):
+#   vcs import ros2_ws/src < ros2_ws/deps.repos
+#
+# `hermes_msgs` is VENDORED in this repo (see
+# `ros2_ws/src/hermes_msgs/VENDORED_FROM.md`) and intentionally NOT listed
+# here. This file is for ROS 2 packages that aren't vendored.
+#
+# `hri_actions_msgs` is needed for the ROS4HRI Intent publisher (see
+# `docs/D4_PLAN.md` §4.4). When the Sprint 0 Intent publisher lands, an
+# apt package (`ros-humble-hri-actions-msgs`) is preferred if it ships for
+# the target Vulcanexus/Humble distribution; this `.repos` entry is the
+# from-source fallback pinned to the `humble-devel` branch.
+
+repositories:
+  hri_actions_msgs:
+    type: git
+    url: https://github.com/ros4hri/hri_actions_msgs.git
+    version: humble-devel

@@ -1,0 +1,10 @@
+# Request detection of components in the camera field of view
+string[] expected_skus          # filter by SKUs (empty = detect all)
+float32 confidence_threshold    # 0.0 = use node default
+bool return_image               # include annotated image in response
+---
+bool success
+string error
+hermes_msgs/DetectedComponent[] detections
+sensor_msgs/Image annotated_image   # only populated if return_image=true
+builtin_interfaces/Time stamp

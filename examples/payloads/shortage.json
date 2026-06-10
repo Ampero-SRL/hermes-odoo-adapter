@@ -1,0 +1,32 @@
+{
+  "id": "urn:ngsi-ld:Shortage:demo-ctrl-1",
+  "type": "Shortage",
+  "projectRef": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
+  },
+  "status": {
+    "type": "Property",
+    "value": "open"
+  },
+  "lines": {
+    "type": "Property",
+    "value": [
+      {
+        "sku": "DIN-TERM-2.5",
+        "missingQty": 3,
+        "requiredQty": 5,
+        "availableQty": 2,
+        "unit": "Unit"
+      }
+    ]
+  },
+  "createdAt": {
+    "type": "Property",
+    "value": "2026-05-27T15:01:00Z"
+  },
+  "@context": [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "http://localhost:8080/context.jsonld"
+  ]
+}
