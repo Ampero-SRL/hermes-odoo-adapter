@@ -17,21 +17,28 @@ FROM eprosima/vulcanexus:humble AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Build tools + Poetry
+# Build tools + Poetry + vcstool (for fetching hri_actions_msgs).
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3-colcon-common-extensions \
+        python3-vcstool \
         python3-pip \
         build-essential \
         curl \
+        git \
     && pip install --no-cache-dir poetry==1.6.1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build the vendored hermes_msgs package (ROS2 service / message types
 # the adapter consumes — see ros2_ws/src/hermes_msgs/VENDORED_FROM.md).
+# Fetch hri_actions_msgs from source (deps.repos pinned to humble-devel)
+# and build it in the same workspace so the ROS4HRI Intent publisher
+# can import hri_actions_msgs.msg.Intent at runtime.
 WORKDIR /opt/hermes_ws
 COPY ros2_ws/src/hermes_msgs /opt/hermes_ws/src/hermes_msgs
-RUN . /opt/ros/humble/setup.sh && \
-    colcon build --packages-select hermes_msgs && \
+COPY ros2_ws/deps.repos /opt/hermes_ws/deps.repos
+RUN vcs import src < deps.repos && \
+    . /opt/ros/humble/setup.sh && \
+    colcon build --packages-select hermes_msgs hri_actions_msgs && \
     rm -rf build log
 
 # Install Python dependencies via Poetry (no virtualenv — system Python)
