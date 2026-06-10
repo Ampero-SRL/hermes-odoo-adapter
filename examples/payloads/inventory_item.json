@@ -1,9 +1,9 @@
 {
-  "id": "urn:ngsi-ld:InventoryItem:ARTICOLO5",
+  "id": "urn:ngsi-ld:InventoryItem:SCH-REL-24V",
   "type": "InventoryItem",
   "sku": {
     "type": "Property",
-    "value": "ARTICOLO5"
+    "value": "SCH-REL-24V"
   },
   "available": {
     "type": "Property",

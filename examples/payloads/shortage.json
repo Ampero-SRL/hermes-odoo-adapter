@@ -1,9 +1,9 @@
 {
-  "id": "urn:ngsi-ld:Shortage:demo-project-1",
+  "id": "urn:ngsi-ld:Shortage:demo-ctrl-1",
   "type": "Shortage",
   "projectRef": {
     "type": "Relationship",
-    "object": "urn:ngsi-ld:Project:demo-project-1"
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
   },
   "status": {
     "type": "Property",
@@ -13,7 +13,7 @@
     "type": "Property",
     "value": [
       {
-        "sku": "ARTICOLO7",
+        "sku": "DIN-TERM-2.5",
         "missingQty": 3,
         "requiredQty": 5,
         "availableQty": 2,

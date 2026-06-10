@@ -9,8 +9,8 @@
 #   response: hermes_msgs.srv.ProduceStock_Response(success=True)
 
 set -euo pipefail
-: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-project-1}"
-: "${SKU:=PANEL-P1}"
+: "${PROJECT_ID:=urn:ngsi-ld:Project:demo-ctrl-1}"
+: "${SKU:=CTRL-PANEL-A1}"
 : "${QUANTITY:=1}"
 
 ros2 service call /hermes/stock/produce \

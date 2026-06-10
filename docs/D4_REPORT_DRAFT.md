@@ -181,11 +181,11 @@ Pending Sprint 1.5 fresh-clone reproducibility validation. Target acceptance:
 ```
 git clone https://github.com/Ampero-SRL/hermes-odoo-adapter
 cd hermes-odoo-adapter
+cp .env.example .env
 docker compose -f docker/docker-compose.demo.yml up -d
-curl -s http://localhost:8080/healthz                      # -> {"status":"ok",...}
-curl -s http://localhost:8080/api/v1/projects               # NGSI-LD project list
+curl -s http://localhost:8080/healthz       # -> {"status":"healthy","service":"hermes-odoo-adapter","version":"2.0.0"}
 ros2 service call /hermes/warehouse/pick \
-    hermes_msgs/srv/WarehousePick "{job_id:'', sku:'ARTICOLO5', quantity:10}"
+    hermes_msgs/srv/WarehousePick "{job_id:'', sku:'SCH-REL-24V', quantity:1}"
 # -> expected response logged in docs/03_installation_and_hello_world.md
 ```
 

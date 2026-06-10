@@ -6,7 +6,9 @@
 #
 # Expected output:
 #   HTTP/1.1 201 Created
-#   Location: /ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-project-1
+#   Location: .../ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1
+#   (the exact Location header is implementation-dependent; what matters
+#    is the 201 status and that the entity is retrievable by id)
 
 set -euo pipefail
 : "${ORION_URL:=http://localhost:1026}"

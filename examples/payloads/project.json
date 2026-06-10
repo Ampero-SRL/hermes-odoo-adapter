@@ -1,9 +1,9 @@
 {
-  "id": "urn:ngsi-ld:Project:demo-project-1",
+  "id": "urn:ngsi-ld:Project:demo-ctrl-1",
   "type": "Project",
   "code": {
     "type": "Property",
-    "value": "P1"
+    "value": "DEMO-CTRL"
   },
   "station": {
     "type": "Property",

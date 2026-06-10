@@ -21,7 +21,7 @@
 #       success=True, job_id='J-<8 hex>', error='')
 
 set -euo pipefail
-: "${SKU:=ARTICOLO5}"
+: "${SKU:=SCH-REL-24V}"
 : "${QUANTITY:=1}"
 
 ros2 service call /hermes/warehouse/pick \
