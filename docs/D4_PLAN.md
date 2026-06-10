@@ -118,7 +118,7 @@ Citations are paths relative to the `hermes_odoo_adapter/` repo unless noted.
 | 12 | ROS 2/Vulcanexus interfaces documented | ✅ | `docs/02_interfaces.md` is the canonical reference: node name (default `hermes_adapter`), 5 service servers (with per-service request/response field signatures), 3 publishers + 1 subscriber, QoS notes (latched `tray_state`), the three entrypoints (`python -m` / `docker compose` / `ros2 launch ./launch/...`), plus the ROS4HRI Intent mapping (Sprint 0.4). The README and `docs/04_basic_demo_how_to_use.md` reference back to it. |
 | 13 | FIWARE / NGSI-LD interface (entities + @context + payload examples) | ✅ | `contracts/schemas/{Project,Reservation,InventoryItem,Shortage}.schema.json` + `contracts/context/context.jsonld` + README "NGSI-LD Entities"; **add** payload examples + Context Broker walkthrough |
 | 14 | DDS NGSI-LD integration (DDS enabler conf file) | ❌ | No `config/dds_enabler.*` shipped; document whether enabler used or justify N/A and describe the alternative integration path |
-| 15 | ROS4HRI / ROS4RI alignment | ⚠️ | **Decision flipped from N/A → Used.** Publish `hri_actions_msgs/Intent` for operator / planner inbound flows. **Mapping (narrowed after codex round 2):** `START_ACTIVITY` (standard) for project_selected; domain labels `CONFIRM_PLACEMENT` and `COMPLETE_ACTIVITY` for the two operator confirmations (do *not* over-claim `PLACE_OBJECT` / `STOP_ACTIVITY` — upstream semantics differ); `REMOTE_SUPERVISOR` / `MODALITY_TOUCHSCREEN` for AR. Publisher lives in `ar_bridge_node` (placement) and a small companion node next to `hololens_api` (project/complete) — *not* the adapter, except for the Odoo-MO intent. See §4.4. |
+| 15 | ROS4HRI / ROS4RI alignment | ✅ | **Implemented (Sprint 0.4)** for the planner side — the adapter publishes `hri_actions_msgs/Intent` on the canonical `/intents` topic for every Odoo MO it ingests (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`, JSON `data` carrying activity / goal / object / project_id / BOM). Operator-side intents (HoloLens placement / project select / assembly complete) belong in `hermes_main` companion nodes, mapped here but **not implemented yet** outside this repo. See §4.4. |
 | 16 | Vulcanexus-specific features used | ⚠️ | Uses Fast-DDS via Vulcanexus; **document**: ROS 2 distro/version, DDS Keys, XTypes / Dynamic Types, QoS, Discovery Server / Easy Mode, transports, DDS Enabler |
 
 ### 2.3 Install / Hello World / Demo (D4 §3.2.7)
@@ -207,7 +207,7 @@ wrong, so do them up front. **Order per codex's second-round review:**
    - The **adapter** itself publishes only **planner-derived intents** from
      the Odoo poll loop (the MO → `FULFILL_KIT`/`START_ACTIVITY`). That's a
      much smaller change scope.
-   - Topic placeholder: `/humans/intents` (mentor confirms).
+   - Topic: **`/intents`** — the canonical ROS4HRI choice per the upstream tutorial, codex-confirmed in round 8.
    *(0.25 d to design; impl in step 4 below)*
 4. **Implement the Intent publisher(s)** per the topology decided in step 3,
    with the narrowed mapping in §4.4 (`START_ACTIVITY` standard, plus
@@ -334,29 +334,42 @@ re-using the standard `intent` / `source` / `modality` constants where they fit
 and adding domain-specific string labels (no message extension) where they
 don't."** Strictly stronger than "N/A with thin angle."
 
-**Implementation cost** (now a real Sprint 0 task, not Sprint 4 write-up):
-- New ROS 2 publisher in `ros2_node.py` on topic `/humans/intents` (need to
-  confirm topic name with mentor; some PAL examples use `/intents`).
-- A small `_publish_intent(intent: str, source: str, modality: str, data: dict, confidence: float = 1.0)` helper.
-- Call sites: the four `notify_*` functions in `panelserver/app.py` (those are
-  in the AR repo, not the adapter — so the adapter side is just the Odoo poll
-  loop) **plus** the existing AR-bridge / Hermes API endpoints that receive
-  the operator notifications in `hermes_main/hololens_api/app/main.py` should
-  fan out an Intent publish too (single place; the adapter listens or the
-  bridge publishes — to decide).
-- `package.xml` dep on `hri_actions_msgs` (apt: `ros-humble-hri-actions-msgs`
-  when published, otherwise vcs-import from source).
-- Estimated ~30 LOC + a doc page (`docs/02_interfaces.md` ROS4HRI section).
+**Implementation (landed in Sprint 0.4):**
+- Publisher: `HermesAdapterNode.publish_planner_intent()` in
+  `src/hermes_odoo_adapter/ros2_node.py` on topic **`/intents`** (the
+  canonical ROS4HRI topic per the upstream tutorial). Defensive
+  `hri_actions_msgs` import — no-op with a startup warning when the
+  package isn't built into the workspace.
+- Call site: `ProjectSyncWorker._process_project_request` in
+  `src/hermes_odoo_adapter/workers/project_sync.py` — fires the Intent
+  as soon as the Odoo BOM is retrieved, before stock checking. Wired
+  by `main.py` once both the worker and the ROS 2 node exist
+  (`project_worker.set_intent_publisher(_ros2_node.publish_planner_intent)`).
+- Dockerfile: adds `python3-vcstool` + runs `vcs import < deps.repos`
+  before `colcon build` to also build `hri_actions_msgs` alongside
+  `hermes_msgs`.
+- Operator-side intents (HoloLens AR flows) are NOT in this repo;
+  they belong in companion nodes inside `hermes_main` (`ar_bridge_node`
+  for placement, a future companion next to `hololens_api` for
+  project/complete).
 
-**Open mentor questions** (small, write-up only):
-1. Canonical topic name for the Intent stream — `/intents`, `/humans/intents`,
-   or domain-namespaced `/hermes/operator/intents`?
-2. For `source` of the AR operator: keep `REMOTE_SUPERVISOR` (standard) or
-   use a richer string `operator/<headset_id>`? Standard says strings allowed
-   alongside the constants.
-3. For an MO without an Odoo user attribution: `REMOTE_SUPERVISOR` vs
-   `UNKNOWN_AGENT` — leans `REMOTE_SUPERVISOR` ("the planning system is the
-   remote supervisor of the cell").
+**Resolved mentor questions** (codex round-8 second opinion +
+ROS4HRI tutorial research):
+1. Canonical topic: **`/intents`**. The upstream tutorial uses exactly
+   this name; a domain-scoped `/hermes/intents` would isolate the
+   stream from generic ROS4HRI consumers, which we don't want.
+2. `source` for the Odoo MO event: **`erp/odoo`** (free-form string).
+   `REMOTE_SUPERVISOR` implies a remote human/operator;
+   `UNKNOWN_AGENT` loses useful provenance. The .msg field is a
+   string so a domain value is legal and more informative.
+3. `intent` label: **`START_ACTIVITY`** (standard constant — "ERP
+   planner requests work to begin"). Put the domain specificity in
+   the `data` JSON (`activity=manufacturing_order`,
+   `goal=fulfill_kit`), not in the `intent` string. Avoid invented
+   labels like `FULFILL_KIT` unless downstream consumers need to
+   route on that exact semantic.
+4. `modality`: **`MODALITY_OTHER`** (standard). ERP form submission
+   isn't speech / motion / touchscreen / internal.
 
 ### Sprint 4 — DDS-enabler write-up (0.25 day, after Sprint 0 decisions)
 
@@ -392,7 +405,7 @@ links (Annex VI).
 - **Visibility level** to claim in §3.3.11: aim for **Featured** for D4
   submission, lift to **Flagship** later if the demonstrator video + a
   Vulcanexus tutorial land.
-- **ROS4HRI Intent publisher** — confirm with mentor: (a) topic name (`/humans/intents` vs `/intents` vs domain), (b) acceptance of custom intent labels (`CONFIRM_PLACEMENT`, `COMPLETE_ACTIVITY`) alongside standard ones, (c) which node publishes (extend `ar_bridge_node` vs new companion next to `hololens_api`).
+- **ROS4HRI Intent publisher** — planner side (this adapter) is **implemented**. Operator side (HoloLens AR flows) still needs implementation in `hermes_main` (extend `ar_bridge_node` for placement + new companion next to `hololens_api` for project / complete). Mentor confirmation still useful for: (a) the proposed custom labels `CONFIRM_PLACEMENT` and `COMPLETE_ACTIVITY` for the two operator confirmations, and (b) the publisher topology in the operator path.
 - **DDS enabler vs. custom bridge** — pick one and document, do not mix.
 - **Demonstrator video** — confirm there is a recording suitable for ARISE
   review (end-to-end Odoo → Orion → ROS 2 → robot). If not, schedule a 5-min

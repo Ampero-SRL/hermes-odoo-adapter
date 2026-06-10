@@ -158,7 +158,7 @@ Sprint 2):
 | Publisher (latched) | `/hermes/warehouse/tray_state` | `std_msgs/Int16` | Current-tray state from Hänel HOST-COM. |
 | Publisher | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | Health of warehouse / Odoo / Orion subsystems. |
 | Subscriber | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | Mission-state stream → patches FIWARE entities. |
-| Planned publisher | *(topic TBD: `/humans/intents` vs domain)* | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (see §3.3.5). |
+| Publisher | `/intents` | `hri_actions_msgs/Intent` | ROS4HRI alignment — Odoo MO planner-derived intent (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`). See §3.3.5. |
 | Launch file | [`launch/hermes_odoo_adapter.launch.py`](../launch/hermes_odoo_adapter.launch.py) | `launch` | `ros2 launch ./launch/hermes_odoo_adapter.launch.py` (path-based — adapter is Poetry-only, not an ament package). `ExecuteProcess` wrapper around `python -m hermes_odoo_adapter`. Launch arguments: `ros2_node_name` / `warehouse_backend` / `log_level`. |
 
 **FIWARE / NGSI-LD interface:**
@@ -283,7 +283,7 @@ ros2 service call /hermes/warehouse/pick \
 | Decrement / increment stock after pick / produce | `hermes_msgs/srv/{ConsumeStock,ProduceStock}` | Odoo stock move + NGSI-LD `InventoryItem.quantity` update + `/hermes/inventory_updates` event | Implemented |
 | Bridge Mission Controller state into FIWARE | `std_msgs/String` JSON on `/hermes/mission_state` | NGSI-LD entity patches | Implemented |
 | Continuous Odoo ↔ FIWARE inventory sync | Odoo stock state | NGSI-LD `InventoryItem` updates | Implemented |
-| Publish operator / planner intents (ROS4HRI) | Odoo MO creation event (planner intent); HoloLens UI actions (operator intent, via companion node) | `hri_actions_msgs/Intent` on `/humans/intents` | **Planned (Sprint 0.4)** |
+| Publish planner intents (ROS4HRI) — operator-side intents are published from companion nodes in `hermes_main` | Odoo MO ingestion (planner intent) | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY`, `source=erp/odoo`) | **Implemented (Sprint 0.4)** |
 
 ### 3.3.4 Off-the-shelf capabilities
 
@@ -294,7 +294,7 @@ ros2 service call /hermes/warehouse/pick \
 | BOM resolution + shortage detection | NGSI-LD `Project` request | `Reservation` + `Shortage` entities | NGSI-LD | Implemented |
 | Inventory streaming | (background worker) | `/hermes/inventory_updates` topic + NGSI-LD `InventoryItem` updates | DDS / NGSI-LD | Implemented |
 | Mission-state to FIWARE bridge | DDS subscription | NGSI-LD entity patches | DDS / NGSI-LD | Implemented |
-| Operator / planner ROS4HRI Intent publishing | Odoo MO event / AR-operator actions | `hri_actions_msgs/Intent` on `/humans/intents` | DDS (ROS4HRI) | Planned (Sprint 0.4) |
+| Planner ROS4HRI Intent publishing (operator intents come from companion nodes in `hermes_main`) | Odoo MO ingestion | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY`, `source=erp/odoo`) | DDS (ROS4HRI) | Implemented (Sprint 0.4) |
 
 ### 3.3.5 Interoperability evidence
 

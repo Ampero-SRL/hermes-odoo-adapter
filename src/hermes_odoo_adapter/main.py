@@ -161,6 +161,13 @@ async def lifespan(app: FastAPI):
                     "ROS2 node started",
                     node_name=settings.ros2_node_name,
                 )
+                # Sprint 0.4 — once the ROS 2 node is up, hand its
+                # ROS4HRI Intent publisher to the project worker so any
+                # Odoo planner MO ingestion emits an Intent on /intents.
+                if project_worker is not None and _ros2_node is not None:
+                    project_worker.set_intent_publisher(
+                        _ros2_node.publish_planner_intent
+                    )
             except ImportError:
                 logger.warning(
                     "rclpy not available — ROS2 node disabled. "
