@@ -1,0 +1,4 @@
+# Cancel a warehouse pick order — Mission Controller → Adapter
+string job_id
+---
+bool success

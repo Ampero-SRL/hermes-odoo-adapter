@@ -1,0 +1,7 @@
+# Produce (increment) stock — Mission Controller → Adapter
+# Called when a finished product is completed
+string project_id
+string sku
+int32 quantity
+---
+bool success

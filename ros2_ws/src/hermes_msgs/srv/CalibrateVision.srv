@@ -1,0 +1,16 @@
+# Calibration commands for pixel-to-robot homography
+# command: capture | add_point | compute | save | load | status
+string command
+
+# For add_point: pixel coordinates
+float64 pixel_x
+float64 pixel_y
+
+# For add_point: corresponding robot coordinates (meters)
+float64 robot_x
+float64 robot_y
+---
+bool success
+string message
+float64 reprojection_error      # pixels (after compute/status)
+int32 num_points                # number of calibration correspondences

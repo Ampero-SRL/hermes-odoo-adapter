@@ -1,0 +1,8 @@
+# Consume (decrement) stock — Mission Controller → Adapter
+# Called after cobot picks components; updates Odoo + FIWARE atomically
+string project_id
+string sku
+int32 quantity          # ACTUAL count picked by cobot
+---
+bool success
+float64 remaining
