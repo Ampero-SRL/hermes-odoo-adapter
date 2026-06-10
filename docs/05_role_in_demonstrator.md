@@ -85,7 +85,7 @@ End-to-end run (single project, one BOM line):
 |---|---|---|
 | **Odoo integration** | `OdooClient` + JSON-RPC patterns + the BOM-resolution worker | The Odoo addon and customer BOM data |
 | **Orion-LD digital twin** | `OrionClient` + the four entity schemas + the `@context` + subscription handler | Operator dashboard configuration |
-| **Hänel HOST-COM SOAP integration** | `WarehouseClient` ABC + `HanelSoapClient` (open) + the `NullWarehouseClient` mock | Live Hänel endpoint + credentials |
+| **Hänel integration** | `WarehouseClient` ABC + `HanelHostComClient` (open; raw TCP HOST-COM telegrams, default) + `HanelSoapClient` (open; legacy HOST-WEB SOAP 1.1) + the `NullWarehouseClient` mock | Live Hänel endpoint + credentials |
 | **ROS 2 / DDS face** | `HermesAdapterNode` — 5 services + 3 publishers + 1 subscriber | The Mission Controller that consumes them (lives in `hermes_main/`) |
 | **NGSI-LD ↔ DDS bridging** | In-process bridging in `ros2_node.py` ↔ `orion_client.py`; canonical mapping in [`config/README.md`](../config/README.md) | — |
 | **ROS4HRI Intent publishing** | Planner-derived MO intent published from the adapter (Sprint 0.4); operator intents published from upstream nodes near the source (`hermes_main/`) | The HoloLens AR-button → Intent companion node lives in `hermes_main/hololens_api/` |

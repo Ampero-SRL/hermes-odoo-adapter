@@ -97,22 +97,34 @@ bash examples/curl/04_list_entities.sh Project | \
 # -> "shortage"
 ```
 
-To exercise the **Reservation branch** instead, top up the short SKU in
-the Odoo mock before creating the Project (or pick a project whose BOM
-fits the seeded stock):
+To exercise the **Reservation branch** instead, top up the short SKU
+directly in the Odoo mock and then ask the adapter to recompute the
+Project. The mock exposes a `POST /debug/stock/{product_id}?quantity=...`
+endpoint for exactly this purpose (`docker/odoo-mock/app.py`); the
+WAGO-221-412 product id in the seeded data is `5`:
 
 ```bash
-# Top up WAGO-221-412 stock to clear the shortage.
-SKU=WAGO-221-412 QUANTITY=20 bash examples/curl/06_admin_inventory_sync.sh
-# Then re-trigger the BOM resolution.
-curl -sX POST http://localhost:8080/admin/recompute/demo-ctrl-1
+# Top up WAGO-221-412 stock in the Odoo mock to clear the shortage.
+curl -sX POST "http://localhost:8069/debug/stock/5?quantity=20" | jq .
+# -> {"message":"Updated stock for product 5 to 20.0"}
 
-# Now the adapter writes a Reservation.
+# Ask the adapter to recompute the Project's BOM. The /admin/recompute
+# endpoint uses the URL path as the URN tail; pass the real project
+# code (the mapping key) in the body via `projectCode`.
+curl -sS -X POST http://localhost:8080/admin/recompute/demo-ctrl-1 \
+    -H "Content-Type: application/json" \
+    -d '{"projectCode":"DEMO-CTRL"}'
+# -> {"message":"Recomputation queued for project demo-ctrl-1"}
+
+# After 1-2 s the adapter has written the Reservation.
 bash examples/curl/04_list_entities.sh Reservation
 # -> [{"id":"urn:ngsi-ld:Reservation:demo-ctrl-1",
 #      "status":{"type":"Property","value":"pending"},
 #      "source":{"type":"Property","value":"odoo"},
 #      "lines":{"type":"Property","value":[ ...BOM lines... ]}, ...}]
+# Project.status moves from 'shortage' to 'processing' (the value the
+# adapter writes once a Reservation has been materialised; see the
+# Project.schema.json status enum description).
 ```
 
 **What this proves.** The HTTP / NGSI-LD face of the adapter is wired,

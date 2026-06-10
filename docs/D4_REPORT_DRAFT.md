@@ -360,7 +360,7 @@ ros2 service call /hermes/warehouse/pick \
 |---|---|
 | Open implementation boundary | Apache-2.0 — all Python source, contracts, schemas, Dockerfiles, mocks, and the vendored `hermes_msgs` are open. |
 | Commercial / proprietary elements | Production credentials for the live Hänel HOST-COM controller and Odoo instance; customer-specific BOM data; the upstream `hermes_main` Mission Controller (still internal at the time of D4 submission). |
-| Technical limitations | Currently single-tenant (one Odoo + one Orion + one Hänel per adapter instance); no built-in retry of arbitrary NGSI-LD calls beyond the existing `tenacity` decorators; the ROS4HRI Intent publisher ships unconsumed by default (no downstream node listens yet). |
+| Technical limitations | Currently single-tenant (one Odoo + one Orion + one Hänel per adapter instance); no built-in retry of arbitrary NGSI-LD calls beyond the existing `tenacity` decorators; the ROS4HRI Intent publisher is planned for Sprint 0.4 (mapping is locked, code not yet in `ros2_node.py`); once it lands it will be unconsumed by default (no downstream node listens yet). |
 | Hardware limitations | Tested only against Hänel MP 12N + JAKA Pro 16 + Vulcanexus Humble. Other vertical lifts require a `WarehouseClient` implementation. |
 | Untested cases | Adapter under DDS-cross-network conditions (Discovery Server), Odoo 18, Orion-LD 1.5+ — all expected to work but not validated. |
 | Future work | Sprint 0.4 — ROS4HRI Intent publisher implementation. Sprint 1 — `docs/` + `examples/` + `launch/` + `media/`. Sprint 1.5 — fresh-clone reproducibility validation. Custom QoS profile for cross-network deployments. Multi-tenant configuration. |
