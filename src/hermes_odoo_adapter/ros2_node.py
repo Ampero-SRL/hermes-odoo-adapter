@@ -197,12 +197,19 @@ class HermesAdapterNode(Node):
     def publish_planner_intent(
         self,
         *,
-        mo_id: str,
+        bom_id: str,
         project_id: str,
         bom_lines: Optional[list] = None,
         source: str = "erp/odoo",
     ) -> None:
         """Publish an `hri_actions_msgs/Intent` for an Odoo MO event.
+
+        The semantic carried by this Intent is "the ERP planner has
+        asked for kit X to be fulfilled". In this pipeline the
+        manufacturing order is materialised as an NGSI-LD ``Project``
+        (passed in as ``project_id``); the underlying BOM resolution
+        that this Intent fires *for* lives at ``bom_id`` (set by the
+        call site to ``bom["id"]`` from the Odoo ``mrp.bom`` read).
 
         Conventions (codex-verified, see docs/02_interfaces.md §4):
 
@@ -216,8 +223,9 @@ class HermesAdapterNode(Node):
                         speech / motion / touchscreen).
         - ``confidence``: 1.0 (the MO is a deterministic ERP event).
         - ``data``:     JSON-encoded thematic-role payload with the
-                        ``activity``, ``goal``, ``object``, ``project_id``
-                        and ``bom`` fields.
+                        ``activity``, ``goal``, ``object`` (``type=bom``,
+                        ``id=bom_id``), ``project_id``, and ``bom``
+                        fields.
 
         No-op (with a single warning log) if ``hri_actions_msgs`` wasn't
         importable at adapter startup.
@@ -231,7 +239,12 @@ class HermesAdapterNode(Node):
         payload = {
             "activity": "manufacturing_order",
             "goal": "fulfill_kit",
-            "object": {"type": "manufacturing_order", "id": str(mo_id)},
+            # The ``object`` thematic role is the BOM the planner asked
+            # to resolve. In a deployment where Odoo manufacturing orders
+            # carry an explicit MO id, the call site can pass it in via
+            # ``bom_id`` too — the field semantics are "the thing the
+            # planner asked to be fulfilled".
+            "object": {"type": "bom", "id": str(bom_id)},
             "project_id": str(project_id),
             "bom": bom_lines or [],
         }
@@ -251,7 +264,7 @@ class HermesAdapterNode(Node):
         self._intent_pub.publish(msg)
         self.get_logger().info(
             f"Published ROS4HRI Intent: START_ACTIVITY "
-            f"mo={mo_id} project={project_id} source={source} "
+            f"bom={bom_id} project={project_id} source={source} "
             f"bom_lines={len(payload['bom'])}"
         )
 

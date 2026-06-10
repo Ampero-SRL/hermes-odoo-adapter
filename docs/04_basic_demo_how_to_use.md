@@ -186,7 +186,8 @@ After the (mock) cobot picks the component, the Mission Controller calls
 the adapter's stock-decrement service. The adapter:
 
 1. Posts the stock move to the Odoo mock (decrementing the SKU quantity).
-2. PATCHes the corresponding `InventoryItem` (`available` / `total`) in Orion-LD.
+2. PATCHes `InventoryItem.available` in Orion-LD with the new remaining
+   quantity reported by the Odoo move.
 3. Publishes an `InventoryUpdate` event on `/hermes/inventory_updates`.
 
 ```bash
@@ -198,12 +199,20 @@ docker compose ... exec adapter bash -lc '
 # response:
 #   hermes_msgs.srv.ConsumeStock_Response(success=True, remaining=11.0)
 
-# Confirm the NGSI-LD side — InventoryItem splits stock across
-# available / reserved / total (see contracts/schemas/InventoryItem.schema.json).
+# Confirm the NGSI-LD side. The InventoryItem schema splits stock
+# across `available` / `reserved` / `total`
+# (see contracts/schemas/InventoryItem.schema.json). The ConsumeStock
+# fast-path patches only `available` (single source of truth = Odoo);
+# `reserved` and `total` realign on the next `inventory_sync_worker`
+# tick (default every 10 min, configurable via
+# INVENTORY_SYNC_INTERVAL_MINUTES) or after a
+# `GET /admin/inventory/sync` trigger.
 bash examples/curl/04_list_entities.sh InventoryItem | \
     jq '.[] | select(.sku.value=="SCH-REL-24V")
         | {sku: .sku.value, available: .available.value, total: .total.value}'
-# -> {"sku":"SCH-REL-24V","available":11,"total":11}    (was 12, now 11)
+# -> {"sku":"SCH-REL-24V","available":11,"total":12}
+#    (was 12, available now 11; `total` will re-converge to 11 after
+#     the next inventory sync.)
 ```
 
 Watch the DDS topic in another shell to confirm the publish:

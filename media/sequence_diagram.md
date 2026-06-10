@@ -80,6 +80,29 @@ sequenceDiagram
     Adapter-->>MC: success, remaining=11.0
 ```
 
-For the ROS4HRI `Intent` publisher flow (planned for Sprint 0.4 — see
-[`../docs/D4_PLAN.md`](../docs/D4_PLAN.md) §4.4), the sequence will live
-alongside this file once the implementation lands.
+## Flow 4 — ROS4HRI Intent publish (Sprint 0.4)
+
+The adapter fires an `hri_actions_msgs/Intent` on the canonical `/intents`
+topic for every Odoo MO event the planner ingests. The Intent fires
+immediately after the BOM is retrieved, before stock checking (so a
+Shortage in the BOM doesn't suppress the Intent — the planner's *ask*
+still happened):
+
+```mermaid
+sequenceDiagram
+    participant Op as Planner / operator
+    participant Orion as Orion-LD
+    participant Adapter as Adapter (FastAPI + rclpy)
+    participant Odoo as Odoo
+    participant Intents as /intents subscribers<br/>(ROS4HRI-aware controllers)
+
+    Op->>Orion: POST Project DEMO-CTRL
+    Orion->>Adapter: POST /orion/notifications
+    Adapter->>Odoo: read BOM(CTRL-PANEL-A1)
+    Odoo-->>Adapter: BOM lines
+    Adapter->>Intents: hri_actions_msgs/Intent on /intents<br/>{intent: START_ACTIVITY,<br/>source: erp/odoo,<br/>modality: MODALITY_OTHER,<br/>data: {activity: manufacturing_order,<br/>goal: fulfill_kit, object.id, project_id, bom}}
+    Adapter->>Adapter: stock check → Shortage / Reservation
+```
+
+Captured wire evidence:
+[`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log).

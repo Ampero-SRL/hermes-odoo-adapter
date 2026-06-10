@@ -261,7 +261,7 @@ Only the **Odoo MO intent** is published from this repo, on **`/intents`**
 
 | Adapter event | `Intent.intent` | `Intent.source` | `Intent.modality` | `Intent.data` (JSON) | Mapping kind |
 |---|---|---|---|---|---|
-| Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"manufacturing_order","id":"<mo_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` | **Used — standard constant + free-form source + JSON payload (codex-validated)** |
+| Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"bom","id":"<bom_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` — `object.id` is the BOM id read from Odoo (`mrp.bom.id`). For deployments that carry an explicit MO id, pass it through `bom_id` instead. | **Used — standard constant + free-form source + JSON payload (codex-validated)** |
 
 For the **other** human-originated intents (HoloLens flows handled by
 companion nodes), see [`D4_PLAN.md`](D4_PLAN.md) §4.4 for the full mapping
@@ -275,10 +275,11 @@ used for those two flows instead.
 ### Dependency
 
 `hri_actions_msgs` is fetched via [`ros2_ws/deps.repos`](../ros2_ws/deps.repos)
-when an apt package isn't available on the target Vulcanexus / Humble
-distribution. The Dockerfile build will be extended in Sprint 0.4 to run
-`vcs import` + `colcon build` for `hri_actions_msgs` alongside the
-vendored `hermes_msgs`.
+because no published apt package exists for it on Vulcanexus / Humble at
+this writing. The Dockerfile installs `python3-vcstool`, runs
+`vcs import < deps.repos` into the workspace, then `colcon build`s
+`hri_actions_msgs` alongside the vendored `hermes_msgs` so the runtime
+image always has `hri_actions_msgs.msg.Intent` importable.
 
 ### Why not the FIWARE DDS Enabler?
 

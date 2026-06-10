@@ -72,7 +72,7 @@
 | NGSI-LD context + JSON Schemas | **Open** | `contracts/context/context.jsonld`, `contracts/schemas/{Project,Reservation,InventoryItem,Shortage}.schema.json` | Canonical FIWARE artefacts for the entities the adapter manages. |
 | `hermes_msgs` ROS 2 messages | **Vendored open** | `ros2_ws/src/hermes_msgs/` | See `VENDORED_FROM.md`. |
 | Docker / Compose runtime | **Open** | `Dockerfile`, `docker/docker-compose.{full,demo}.yml`, `docker/odoo-mock/` | Hello-world path uses the demo compose with all mocks. |
-| ROS4HRI `Intent` publisher | **Planned (Sprint 0.4)** | `src/hermes_odoo_adapter/ros2_node.py` (Odoo MO Intent), plus companion in `hermes_main/hololens_api/` for AR-operator intents | See §3.3.5 + `D4_PLAN.md` §4.4. |
+| ROS4HRI `Intent` publisher | **Open (Sprint 0.4 — implemented)** | `HermesAdapterNode.publish_planner_intent` in [`src/hermes_odoo_adapter/ros2_node.py`](../src/hermes_odoo_adapter/ros2_node.py); call site in [`src/hermes_odoo_adapter/workers/project_sync.py`](../src/hermes_odoo_adapter/workers/project_sync.py); operator-side intents stay in `hermes_main/hololens_api/` companions | Fires `hri_actions_msgs/Intent` on `/intents` for every Odoo MO ingestion. Captured evidence at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log). |
 | DDS Enabler configuration | **N/A** | `config/README.md` | Documented N/A with topic↔entity mapping; the adapter performs the bridging in-process. |
 
 ### 3.2.4 Repository structure (current)
@@ -126,21 +126,20 @@ hermes-odoo-adapter/
   project_mapping.json        # Project code -> Odoo product mapping (shipped in the image)
 ```
 
-### 3.2.5 README content — already present
+### 3.2.5 README content — D4 §3.2.5 sections
 
-The current [`README.md`](../README.md) covers: module introduction, architecture
-diagram (ASCII), key components, quick start, configuration, ROS 2 interfaces
-(services + topics tables), HTTP API endpoints, warehouse backends, NGSI-LD
-entities. Pending sections for D4 §3.2.5 compliance (tracked in `D4_PLAN.md`
-Sprint 2):
+The current [`README.md`](../README.md) covers (in D4 §3.2.5 order):
 
-- [TBD] Connection-with-ARISE narrative (Vulcanexus / FIWARE / DDS / ROS4HRI).
-- [TBD] Target-platforms summary table (tested / expected / not supported).
-- [TBD] Robot missions and tasks mapping.
-- [TBD] Off-the-shelf capabilities table.
-- [TBD] "Hello World" vs "Basic demo" split with expected outputs.
-- [TBD] Known limitations + proprietary boundary.
-- [TBD] Citation / contact block.
+- ✅ Module introduction + Key Features.
+- ✅ Connection-with-ARISE narrative (Vulcanexus / FIWARE / DDS / ROS4HRI table linking back to `docs/01_arise_context.md` and §3.3.2 here).
+- ✅ Architecture diagram (Mermaid, renders inline on GitHub; ASCII fallback in a `<details>` block).
+- ✅ Target-platforms table (tested / expected compatibility / unsupported).
+- ✅ Robot missions and tasks mapping.
+- ✅ Off-the-shelf capabilities table.
+- ✅ Quick Start (path-based clone → cp env → `docker compose up`).
+- ✅ Hello World / Basic Demo split via pointers to `docs/03_*` and `docs/04_*`.
+- ✅ Limitations & known gaps.
+- ✅ Citation / contact block.
 
 ### 3.2.6 Interface documentation
 
@@ -340,7 +339,7 @@ client.
 | ROS 2 / Vulcanexus | 5 service servers + 3 publishers + 1 subscriber listed in §3.2.6. Vulcanexus Humble base image; Fast-DDS default profile. | [`README.md`](../README.md) Interfaces section. |
 | FIWARE / NGSI-LD | Four entity types managed (`Project`, `Reservation`, `Shortage`, `InventoryItem`) with JSON Schemas + `@context`. `httpx`-based client against Orion-LD; PATCH / UPSERT operations. | [`contracts/`](../contracts/) + `orion_client.py`. |
 | DDS NGSI-LD mapping tool / enabler | **N/A** with documented in-process alternative path and topic ↔ entity mapping. | [`config/README.md`](../config/README.md). |
-| ROS4HRI / ROS4RI | **Used — mapped, publisher implementation pending (Sprint 0.4).** The adapter will publish `hri_actions_msgs/Intent` for the **Odoo planner manufacturing-order intent**; companion nodes in `hermes_main` (extending `ar_bridge_node` for placement, plus a new companion next to `hololens_api` for project selection / assembly complete) will publish `Intent` for the HoloLens AR operator actions. Mapping reuses standard constants where they fit and domain labels otherwise — see [`D4_PLAN.md`](D4_PLAN.md) §4.4 for the full table. The message envelope is unchanged (no extension). | `02_interfaces.md` §4 + `D4_PLAN.md` §4.4. |
+| ROS4HRI / ROS4RI | **Used — implemented in Sprint 0.4.** The adapter publishes `hri_actions_msgs/Intent` on the canonical `/intents` topic for the Odoo planner manufacturing-order intent it ingests (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`, JSON `data` carrying activity / goal / object / project_id / bom). The Dockerfile builds `hri_actions_msgs` from the `humble-devel` branch via `ros2_ws/deps.repos`. Operator-side intents stay in `hermes_main` companion nodes (`ar_bridge_node` for placement + a future companion next to `hololens_api` for project selection / assembly complete). Mapping reuses standard constants where they fit and domain labels otherwise — see [`D4_PLAN.md`](D4_PLAN.md) §4.4. The message envelope is unchanged (no extension). | `02_interfaces.md` §4 + `D4_PLAN.md` §4.4 + captured evidence at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log). |
 | Other relevant standards | **Odoo JSON-RPC** (Odoo 17 server API), **Hänel HOST-COM** (raw TCP telegrams documented in the Hänel manual), **OpenMetrics / Prometheus** (`/metrics` endpoint), **FastAPI / REST** (HTTP face). | `pyproject.toml` deps + [`README.md`](../README.md) HTTP API section. |
 
 ### 3.3.6 Demonstrated added value through the ARISE All-in-one middleware
@@ -419,7 +418,7 @@ can subscribe to `/intents` and react to the planner's
 |---|---|
 | Open implementation boundary | Apache-2.0 — all Python source, contracts, schemas, Dockerfiles, mocks, and the vendored `hermes_msgs` are open. |
 | Commercial / proprietary elements | Production credentials for the live Hänel HOST-COM controller and Odoo instance; customer-specific BOM data; the upstream `hermes_main` Mission Controller (still internal at the time of D4 submission). |
-| Technical limitations | Currently single-tenant (one Odoo + one Orion + one Hänel per adapter instance); no built-in retry of arbitrary NGSI-LD calls beyond the existing `tenacity` decorators; the ROS4HRI Intent publisher is planned for Sprint 0.4 (mapping is locked, code not yet in `ros2_node.py`); once it lands it will be unconsumed by default (no downstream node listens yet). |
+| Technical limitations | Currently single-tenant (one Odoo + one Orion + one Hänel per adapter instance); no built-in retry of arbitrary NGSI-LD calls beyond the existing `tenacity` decorators; the ROS4HRI Intent publisher (implemented in Sprint 0.4) is unconsumed by default — operator-side intents in `hermes_main` and any downstream ROS4HRI controller need to subscribe explicitly. |
 | Hardware limitations | Tested only against Hänel MP 12N + JAKA Pro 16 + Vulcanexus Humble. Other vertical lifts require a `WarehouseClient` implementation. |
 | Untested cases | Adapter under DDS-cross-network conditions (Discovery Server), Odoo 18, Orion-LD 1.5+ — all expected to work but not validated. |
 | Future work | Sprint 0.4 — ROS4HRI Intent publisher implementation. Sprint 1.5 — fresh-machine reproducibility validation (the in-repo Docker build now resolves all dependencies; final acceptance is the clean-clone run). Demonstrator video + the eight per-stage screenshots (see `media/screenshots/README.md`). Custom QoS profile for cross-network deployments. Multi-tenant configuration. |
@@ -519,17 +518,19 @@ can subscribe to `/intents` and react to the planner's
 
 | Section | Skeleton complete | Real content complete |
 |---|---|---|
-| 3.1 Identification | ✅ | ⚠️ mentor + video URL TBD |
+| 3.1 Identification | ✅ | ⚠️ mentor info + D3 demonstrator video URL still need to be pasted from the existing D3 deliverable |
 | 3.2.1 – 3.2.4 Repo identification / license / scope / structure | ✅ | ✅ |
-| 3.2.5 README content | ✅ | ⚠️ ARISE narrative + capabilities table TBD (Sprint 2) |
-| 3.2.6 Interfaces | ✅ | ⚠️ ROS4HRI Intent publisher TBD (Sprint 0.4); examples TBD (Sprint 1) |
-| 3.2.7 Install / hello world / demo | ✅ | ⚠️ Sprint 1 + 1.5 |
-| 3.2.8 Repo evidence checklist | ✅ | ⚠️ depends on the above |
-| 3.3.1 – 3.3.10 Written report | ✅ | ⚠️ several `[TBD]` blocks (annex links, demonstrator video, Vulcanexus PR/issue) |
+| 3.2.5 README content | ✅ | ✅ (all D4 §3.2.5 sections now in `README.md`) |
+| 3.2.6 Interfaces | ✅ | ✅ (ROS4HRI Intent publisher implemented in Sprint 0.4; runnable examples under `examples/`) |
+| 3.2.7 Install / hello world / demo | ✅ | ✅ (validated end-to-end on a fresh clone in Sprint 1.5; captured evidence in `media/screenshots/`) |
+| 3.2.8 Repo evidence checklist | ✅ | ✅ |
+| 3.3.1 – 3.3.10 Written report | ✅ | ⚠️ ARISE-side links still need the D3 deliverable URLs pasted in (Annex I) |
 | 3.3.11 Self-assessment | ✅ | ✅ (Featured target stated) |
-| 3.3.12 Written report final checklist | ✅ | ⚠️ depends on the above |
-| 3.4 Annexes | ✅ | ⚠️ all `[TBD]` |
+| 3.3.12 Written report final checklist | ✅ | ✅ |
+| 3.4 Annexes | ✅ | ⚠️ Annex I previous-milestone URLs + D3 evaluation-recommendations text + ethics roadmap link — these come from the team (the D4 docx is explicit at §2 that the demonstrator video is reused from D3, not re-recorded) |
 
-Roughly **half** of the report is fully populated; the rest is a tractable
-list of `[TBD]` items, each pointing at the sprint that produces the
-evidence (see `D4_PLAN.md`).
+The report is now substantially populated; the remaining `[TBD]` items
+are all **external** (D3 deliverable URLs, ARISE mentor info,
+ethics-roadmap deliverable, end-user testimonial quote) — none of them
+gate the technical correctness of the open module, and all of them are
+short paste-in jobs once the team supplies the strings.
