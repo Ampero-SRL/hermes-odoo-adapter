@@ -67,7 +67,8 @@ The adapter has three equivalent entrypoints:
 |---|---|
 | `python -m hermes_odoo_adapter` | Local dev (host has ROS 2 + Vulcanexus + vendored `hermes_msgs` built). |
 | `docker compose -f docker/docker-compose.demo.yml up` | Fresh-clone hello world / basic demo. |
-| `ros2 launch ./launch/hermes_odoo_adapter.launch.py` *(or `/app/launch/...` inside the image)* | Standard ROS 2 launch system. Declares `ros2_node_name` / `warehouse_backend` / `log_level` launch arguments — all other configuration comes from the environment. Invoked **by path**, not by package name, because the adapter is Poetry-managed and not registered as an ament package. See [`../launch/README.md`](../launch/README.md). |
+| `ros2 launch hermes_odoo_adapter_launch hermes_odoo_adapter.launch.py` | Standard ROS 2 launch system, package-name form. Resolves through the small `hermes_odoo_adapter_launch` ament_python wrapper at [`../ros2_ws/src/hermes_odoo_adapter_launch/`](../ros2_ws/src/hermes_odoo_adapter_launch/); the wrapper is colcon-built automatically inside the Docker image. Same `ros2_node_name` / `warehouse_backend` / `log_level` arguments as the path-based form. |
+| `ros2 launch ./launch/hermes_odoo_adapter.launch.py` *(or `/app/launch/...` inside the image)* | Same launch file, invoked **by path** (handy when the ament wrapper isn't sourced — e.g. during native dev). See [`../launch/README.md`](../launch/README.md). |
 
 ### Service usage examples
 
