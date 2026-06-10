@@ -1,0 +1,20 @@
+{
+  "id": "urn:ngsi-ld:Project:demo-ctrl-1",
+  "type": "Project",
+  "code": {
+    "type": "Property",
+    "value": "DEMO-CTRL"
+  },
+  "station": {
+    "type": "Property",
+    "value": "assembly-cell-1"
+  },
+  "status": {
+    "type": "Property",
+    "value": "requested"
+  },
+  "@context": [
+    "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld",
+    "http://localhost:8080/context.jsonld"
+  ]
+}

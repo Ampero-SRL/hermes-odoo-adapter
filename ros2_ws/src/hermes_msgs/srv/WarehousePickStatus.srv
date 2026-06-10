@@ -1,0 +1,7 @@
+# Warehouse pick status query — Mission Controller → Adapter
+# Check if the tray is ready for picking
+string job_id
+---
+string status           # submitted | presenting | ready | failed
+string slot             # e.g. "L1-S7" when ready
+bool tray_ready

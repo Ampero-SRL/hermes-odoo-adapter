@@ -69,8 +69,8 @@
         },
         "value": {
           "type": "string",
-          "enum": ["requested", "ready", "blocked", "running", "completed", "cancelled"],
-          "description": "Project status"
+          "enum": ["requested", "processing", "shortage", "ready", "blocked", "running", "completed", "cancelled"],
+          "description": "Project lifecycle status. The adapter writes 'processing' once it has resolved the BOM and materialised a Reservation, and 'shortage' when the BOM cannot be satisfied from current stock. Downstream nodes (Mission Controller / HoloLens AR app) drive the transitions to 'ready' (tray presented), 'running' (assembly in progress), 'completed' or 'cancelled'. 'blocked' is reserved for manual / error holds."
         },
         "observedAt": {
           "type": "string",

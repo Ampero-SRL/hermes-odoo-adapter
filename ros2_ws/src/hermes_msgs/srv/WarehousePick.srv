@@ -1,0 +1,9 @@
+# Warehouse pick order — Mission Controller → Adapter
+# Sends a pick order to the warehouse (ASRS) for a given SKU
+string job_id           # optional — auto-generated if empty
+string sku
+int32 quantity
+---
+bool success
+string job_id
+string error
