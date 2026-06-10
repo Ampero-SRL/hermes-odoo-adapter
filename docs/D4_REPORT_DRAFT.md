@@ -160,7 +160,7 @@ Sprint 2):
 - Entity types managed: `Project`, `Reservation`, `Shortage`, `InventoryItem` (schemas in [`contracts/schemas/`](../contracts/schemas/))
 - Endpoint: Orion-LD HTTP REST (configurable via env `ORION_URL`; default `http://orion-ld:1026`).
 - Payload examples: [TBD: examples/payloads/*.json — Sprint 1.]
-- Notification subscriptions: adapter exposes `POST /orion/notify` to receive Orion-LD subscriptions on `Project` requests.
+- Notification subscriptions: adapter exposes `POST /orion/notifications` to receive Orion-LD subscriptions on `Project` requests.
 
 **DDS NGSI-LD enabler:**
 
@@ -315,7 +315,7 @@ ros2 service call /hermes/warehouse/pick \
 | Execution element | Evidence |
 |---|---|
 | Installation path | Docker / Docker Compose. See §3.2.7 and [`README.md`](../README.md) Quick Start. |
-| Hello world | `docker compose -f docker/docker-compose.demo.yml up`, `curl http://localhost:8080/healthz` — expected JSON `{"status":"ok",…}`. [TBD: capture exact log output for `docs/03_installation_and_hello_world.md`.] |
+| Hello world | `docker compose -f docker/docker-compose.demo.yml up`, `curl http://localhost:8080/healthz` — expected JSON `{"status":"healthy","service":"hermes-odoo-adapter","version":"2.0.0"}`. See [`docs/03_installation_and_hello_world.md`](03_installation_and_hello_world.md) for the captured output. |
 | Basic demo | End-to-end Odoo MO → Orion-LD `Project` → adapter `Reservation` → ROS 2 `WarehousePick` → mock tray presentation → `ConsumeStock` → updated `InventoryItem`. [TBD: command list, expected outputs, screenshots for `docs/04_basic_demo_how_to_use.md`.] |
 | Simulation / mock / recorded-data path | `NullWarehouseClient` + `docker/odoo-mock` cover the warehouse and ERP sides; Orion-LD runs as-is with Mongo. No real hardware is needed for either the hello world or the basic demo. |
 | Troubleshooting | [TBD: known failure modes + diagnostic curls — Sprint 1.] |
