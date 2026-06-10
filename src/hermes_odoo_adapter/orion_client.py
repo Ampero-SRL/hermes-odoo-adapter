@@ -278,15 +278,43 @@ class OrionClient:
             return result if isinstance(result, list) else []
     
     async def create_subscription(self, subscription: Dict[str, Any]) -> Optional[str]:
-        """Create an NGSI-LD subscription"""
+        """Create an NGSI-LD subscription.
+
+        Orion-LD returns **201 No Content** on a successful create, which
+        bubbles up through ``_make_request`` as ``None``. ``None`` here
+        therefore means "success, empty body" — not a failure. A failure
+        path raises ``OrionAPIError`` from ``_make_request``, or returns a
+        dict with an ``"error"`` key (e.g. 409 conflict).
+        """
         with metrics.time_orion_operation("subscribe", "Subscription"):
-            logger.info("Creating NGSI-LD subscription", notification_url=subscription.get("notification", {}).get("endpoint", {}).get("uri"))
-            result = await self._make_request("POST", "ngsi-ld/v1/subscriptions", subscription)
-            
-            if result and "error" not in result:
-                # Extract subscription ID from location header or response
-                return subscription.get("id", "subscription_created")
-            return None
+            logger.info(
+                "Creating NGSI-LD subscription",
+                notification_url=subscription.get("notification", {}).get("endpoint", {}).get("uri"),
+            )
+            try:
+                result = await self._make_request(
+                    "POST", "ngsi-ld/v1/subscriptions", subscription,
+                )
+            except OrionAPIError as exc:
+                logger.error(
+                    "Orion rejected the NGSI-LD subscription create",
+                    status_code=exc.status_code,
+                    response_body=exc.response_body,
+                )
+                return None
+
+            if isinstance(result, dict) and result.get("error") == "conflict":
+                # 409 — subscription already exists; treat as a benign
+                # idempotent success.
+                logger.info(
+                    "NGSI-LD subscription already exists — treating as success",
+                    subscription_id=subscription.get("id"),
+                )
+                return subscription.get("id", "subscription_exists")
+
+            # result is None (201 No Content) or a non-error dict — both
+            # are successes.
+            return subscription.get("id", "subscription_created")
     
     async def get_subscription(self, subscription_id: str) -> Optional[Dict[str, Any]]:
         """Get an NGSI-LD subscription"""

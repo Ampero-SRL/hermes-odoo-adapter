@@ -55,7 +55,7 @@
 |---|---|
 | Open implementation license | **Apache-2.0** — see [`LICENSE`](../LICENSE) |
 | Copyright owner(s) | Ampero S.r.l. |
-| Third-party licenses | See [`NOTICE`](../NOTICE); managed Python dependencies under various OSI-approved licenses (Apache-2.0, MIT, BSD), listed in `pyproject.toml`. |
+| Third-party licenses | Per-package version + license table at [`THIRD_PARTY_LICENSES.md`](../THIRD_PARTY_LICENSES.md) (13 runtime Python deps + 3 ROS 2 message packages + the Vulcanexus base image, all under Apache-2.0 / MIT / BSD-3-Clause). Headline attribution in [`NOTICE`](../NOTICE). |
 | Maintainer | Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l. — GitHub: `@<TBD>` |
 | Maintenance commitment | Best effort beyond D4; commercial support paths under Ampero S.r.l. on request. |
 | Commercial/proprietary boundary | Open: the entire adapter (Python source, contracts, Dockerfiles, mock backends). Excluded from the open distribution: the live Hänel HOST-COM controller credentials, the production Odoo instance, and the customer-specific BOM data. The `NullWarehouseClient` (in-tree dev stub) is sufficient to exercise the full pipeline end-to-end without the proprietary parts. |
@@ -248,7 +248,44 @@ ros2 service call /hermes/warehouse/pick \
 | Stage 3 — TRL6-7 Demonstrator | HERMES end-to-end pipeline: Odoo MO → adapter → Orion-LD → Mission Controller → JAKA Pro 16 + Hänel ASRS + AGV. | The adapter is the integration backbone; this module extracts it as a reusable component. |
 | Stage 4 — Shareable module | This D4 package. | See [`docs/D4_PLAN.md`](D4_PLAN.md) and the GitHub repo. |
 
-[TBD: ARISE alignment narrative — 1–2 paragraphs on Vulcanexus / FIWARE / DDS / ROS4HRI.]
+**ARISE alignment narrative.** The HERMES Odoo Adapter sits exactly where
+the four ARISE All-in-one middleware pillars are supposed to compose, and
+its only reason to exist is to make that composition concrete in a real
+industrial cell. **Vulcanexus / ROS 2** carries the DDS conversation with
+the Mission Controller and other ROS 2 nodes: the adapter runs as an
+`rclpy.Node` inside the FastAPI process on the official
+`eprosima/vulcanexus:humble` image, on `ROS_DOMAIN_ID=42` over Fast-DDS,
+exposing five service servers + three publishers + one subscriber.
+**FIWARE / NGSI-LD** is the digital-twin surface: the adapter speaks
+NGSI-LD natively to Orion-LD, owning four canonical entity types
+(`Project`, `Reservation`, `Shortage`, `InventoryItem`) with public JSON
+Schemas and a project-specific `@context` — and subscribes to its own
+`Project` notifications via a `POST /orion/notifications` callback to
+materialise reservations / shortages on demand. **DDS ↔ NGSI-LD
+integration** happens in-process inside `ros2_node.py` ↔ `orion_client.py`
+because the bridge is business-logic-laden (BOM resolution, Hänel SOAP
+orchestration, Mission-state propagation), so a stateless DDS Enabler
+mapping is documented as an N/A with the canonical topic↔entity mapping
+preserved in [`config/README.md`](../config/README.md) for any third party
+that does want to plug the enabler in. **ROS4HRI / ROS4RI** is used: the
+adapter publishes `hri_actions_msgs/Intent` on the canonical `/intents`
+topic every time the Odoo planner ingests a manufacturing order
+(`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`,
+JSON `data` carrying the BOM), so any ROS4HRI-aware behaviour controller
+can subscribe to the stream and react to planner intents without knowing
+anything about Odoo.
+
+The reason the four pillars compose into a single Python process rather
+than four separate services is **operational** — a vertical-lift /
+robotics / ERP integration that crashes on one stack also breaks the
+others, so co-location lets the adapter own the consistency story
+end-to-end (idempotency cache, structured logs, Prometheus metrics,
+`/diagnostics`, `tenacity` retries). That single-process composition
+pattern is, in itself, the reusable contribution: any ARISE experiment
+that needs to bridge an ERP + a FIWARE digital twin + a Vulcanexus
+robotics surface can lift the `WarehouseClient` ABC + `OrionClient` +
+`OdooClient` shape and only re-implement the bottom-of-the-stack vendor
+client.
 
 ### 3.3.3 Platforms, missions and tasks addressed
 

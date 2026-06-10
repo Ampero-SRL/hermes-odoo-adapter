@@ -110,9 +110,13 @@ Odoo → Orion → ROS 2 pipeline is the basic demo in
 |---|---|---|
 | `curl: (7) Failed to connect to localhost port 8080` | Adapter container still booting. | `docker compose -f docker/docker-compose.demo.yml logs -f adapter` and wait for `Uvicorn running on 0.0.0.0:8080`. |
 | `curl: (52) Empty reply from server` on `/healthz` | Vulcanexus image still pulling on first run. | Wait — base image is large; first `up` can take a few minutes. |
+| `Bind for 0.0.0.0:8080 failed: port is already allocated` (or `:1026` / `:27017` / `:8069`) | Another container or host process is squatting the port. | `docker ps --format 'table {{.Names}}\t{{.Ports}}'` to find it. The deployment-side compose under `hermes_main/deployment/` uses the same ports; stop those containers (`docker stop deployment-*-1`) before running the demo stack, or remap the demo ports via a `docker-compose.override.yml`. |
 | `ros2 service call ... → service ... not available` | Adapter started but the ROS 2 node hasn't registered yet, or `ROS_DOMAIN_ID` mismatch. | Confirm `ROS_DOMAIN_ID=42` (adapter default). The exec shell must run inside the **same** container or the same DDS network. |
-| `{"status":"error"}` on `/healthz` | One of the subsystems (Odoo mock / Orion-LD / Mongo) didn't come up. | `docker compose -f docker/docker-compose.demo.yml ps` — restart any container that exited. |
-| `Orion entities empty` | The demo seeds may not have run yet. | Run the seed scripts: `docker compose ... exec adapter python -m scripts.seed_orion_demo`. |
+| `{"status":"error"}` on `/healthz` (or `not_ready` on `/readyz`) | One of the subsystems (Odoo mock / Orion-LD / Mongo) didn't come up. | `docker compose -f docker/docker-compose.demo.yml ps` — restart any container that exited. Check `/readyz` for the per-subsystem `details` map. |
+| `error parsing value for field "inventory_allowed_skus"` at adapter startup | Stale `.env` from before commit `dbde58d`. | `cp .env.example .env` again (the commit added a `NoDecode` annotation so comma-separated lists work; older `.env` files predate the fix). |
+| `[odoo-mock 6/7] COPY data/ ./data/: "/data": not found` at build time | Stale clone from before commit `2a2ce0d`. | `git pull` and rebuild — the seed data under `docker/odoo-mock/data/` was gitignored in the first cut of the repo. |
+| `LdContextNotAvailable: http://localhost:8080/context.jsonld` from Orion when creating a `Project` | The `@context` URL points at the host loopback, which Orion can't reach from inside the compose network. | Use `http://adapter:8080/context.jsonld` (compose hostname). The shipped `examples/payloads/*.json` already use the right URL. |
+| Second `POST /admin/recompute/<id>` doesn't fire any worker activity | The idempotency cache holds the most recent `(project_id, data)` hash for the project. | `curl -X DELETE http://localhost:8080/admin/idempotency/<project_id>` before the second recompute. The cache exists on purpose to avoid duplicate work when Orion notifies twice for the same `Project`. |
 
 If you hit something not in this table, check the adapter logs
 (`docker compose ... logs adapter`) and please open an issue at
