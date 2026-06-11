@@ -94,6 +94,14 @@ test-results/
 media/demo.gif
 media/demo.mp4
 
+# The rendered D4 docx is the submission artefact, not source — render
+# it on demand with:
+#   pandoc docs/D4_REPORT_DRAFT.md \
+#     --reference-doc="D4 - Shareable HRI Modules.docx" \
+#     -o docs/D4_HERMES_Odoo_Adapter.docx
+# Committing it creates drift against the markdown source of truth.
+docs/D4_HERMES_Odoo_Adapter.docx
+
 # Local configuration overrides
 .env.local
 docker-compose.override.yml
