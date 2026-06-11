@@ -1,8 +1,9 @@
 """
 Orion-LD NGSI-LD client for HERMES Odoo Adapter
 """
-import json
 import asyncio
+import json
+import logging
 from typing import Any, Dict, List, Optional, Union
 from urllib.parse import urljoin
 
@@ -101,8 +102,18 @@ class OrionClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=10),
-        retry=retry_if_exception_type((httpx.RequestError, httpx.TimeoutException)),
-        before_sleep=before_sleep_log(logger, "WARNING")
+        # `_make_request` catches `httpx.RequestError` and re-raises it
+        # as `OrionConnectionError`, so tenacity needs to see the latter
+        # to retry — otherwise the original retry-on-transport-error
+        # contract silently breaks.
+        retry=retry_if_exception_type(
+            (httpx.RequestError, httpx.TimeoutException, OrionConnectionError)
+        ),
+        before_sleep=before_sleep_log(logger, logging.WARNING),
+        # Re-raise the original exception after the last failed attempt
+        # rather than wrapping in tenacity's `RetryError`, so callers can
+        # catch `OrionConnectionError` / `httpx.RequestError` directly.
+        reraise=True,
     )
     async def _make_request(
         self, 
@@ -183,7 +194,7 @@ class OrionClient:
     async def create_entity(self, entity: Union[NGSILDEntity, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Create a new NGSI-LD entity"""
         entity_data = (
-            entity.dict(by_alias=True, exclude_none=True)
+            entity.model_dump(by_alias=True, exclude_none=True)
             if hasattr(entity, "dict")
             else entity
         )
@@ -213,7 +224,7 @@ class OrionClient:
     async def upsert_entity(self, entity: Union[NGSILDEntity, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
         """Upsert an NGSI-LD entity (create or update)"""
         entity_data = (
-            entity.dict(by_alias=True, exclude_none=True)
+            entity.model_dump(by_alias=True, exclude_none=True)
             if hasattr(entity, "dict")
             else entity
         )

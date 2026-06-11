@@ -150,7 +150,7 @@ class Reservation(NGSILDEntity):
         return cls(
             id=f"urn:ngsi-ld:Reservation:{project_code}",
             project_ref=NGSILDRelationship(object=project_uri),
-            lines=NGSILDProperty(value=[line.dict(by_alias=True) for line in lines]),
+            lines=NGSILDProperty(value=[line.model_dump(by_alias=True) for line in lines]),
             status=NGSILDProperty(value=status),
             source=NGSILDProperty(value=source),
             created_at=NGSILDProperty(value=datetime.utcnow().isoformat())
@@ -194,7 +194,7 @@ class Shortage(NGSILDEntity):
         return cls(
             id=f"urn:ngsi-ld:Shortage:{project_code}",
             project_ref=NGSILDRelationship(object=project_uri),
-            lines=NGSILDProperty(value=[line.dict(by_alias=True) for line in lines]),
+            lines=NGSILDProperty(value=[line.model_dump(by_alias=True) for line in lines]),
             status=NGSILDProperty(value=status),
             created_at=NGSILDProperty(value=datetime.utcnow().isoformat())
         )
