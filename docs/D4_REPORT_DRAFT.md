@@ -14,8 +14,8 @@
 | Project title | HERMES — Hybrid ERP + Robotics Manufacturing Cell |
 | Project acronym | HERMES |
 | Lead organisation | Ampero S.r.l. |
-| Contact person | Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l. |
-| Technical contact for the repository | Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l. — GitHub: `@<TBD>` |
+| Contact person | Ampero S.r.l. — `tech@ampero.it` |
+| Technical contact for the repository | Ampero S.r.l. — `tech@ampero.it` — GitHub: `@<TBD>` |
 | Assigned ARISE mentor | [TBD: name / email / organisation] |
 | Reusable module name | **HERMES Odoo Adapter** |
 | GitHub repository URL | <https://github.com/Ampero-SRL/hermes-odoo-adapter> |
@@ -56,7 +56,7 @@
 | Open implementation license | **Apache-2.0** — see [`LICENSE`](../LICENSE) |
 | Copyright owner(s) | Ampero S.r.l. |
 | Third-party licenses | Per-package version + license table at [`THIRD_PARTY_LICENSES.md`](../THIRD_PARTY_LICENSES.md) (13 runtime Python deps + 3 ROS 2 message packages + the Vulcanexus base image, all under Apache-2.0 / MIT / BSD-3-Clause). Headline attribution in [`NOTICE`](../NOTICE). |
-| Maintainer | Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l. — GitHub: `@<TBD>` |
+| Maintainer | Ampero S.r.l. — `tech@ampero.it` — GitHub: `@<TBD>` |
 | Maintenance commitment | Best effort beyond D4; commercial support paths under Ampero S.r.l. on request. |
 | Commercial/proprietary boundary | Open: the entire adapter (Python source, contracts, Dockerfiles, mock backends). Excluded from the open distribution: the live Hänel HOST-COM controller credentials, the production Odoo instance, and the customer-specific BOM data. The `NullWarehouseClient` (in-tree dev stub) is sufficient to exercise the full pipeline end-to-end without the proprietary parts. |
 
@@ -495,15 +495,15 @@ can subscribe to `/intents` and react to the planner's
 | Which elements are proprietary or commercial? | Live Hänel HOST-COM endpoint + credentials, production Odoo instance, customer BOMs. |
 | Can the open module be executed without the proprietary elements? | **Yes.** `docker compose -f docker/docker-compose.demo.yml up` exercises the full pipeline with mocks. |
 | What has been replaced by a wrapper / adapter / mock / simulation? | `NullWarehouseClient` replaces the live Hänel; `docker/odoo-mock/` replaces the live Odoo. |
-| Commercial / support path beyond the open implementation? | Ampero S.r.l. offers commercial integration support for production Hänel + Odoo deployments. Contact: `francesco.solinas@olorin.tech`. |
+| Commercial / support path beyond the open implementation? | Ampero S.r.l. offers commercial integration support for production Hänel + Odoo deployments. Contact: `tech@ampero.it`. |
 
 ### 3.4.4 Annex VI — Contacts and support
 
 | Role | Name / organisation | Email / channel |
 |---|---|---|
-| Technical maintainer | Francesco Solinas — Ampero S.r.l. | `francesco.solinas@olorin.tech` — GitHub `@<TBD>` |
-| Project coordinator / contact person | Francesco Solinas — Ampero S.r.l. | `francesco.solinas@olorin.tech` |
-| Commercial contact | Ampero S.r.l. | `francesco.solinas@olorin.tech` |
+| Technical maintainer | Ampero S.r.l. | `tech@ampero.it` — GitHub `@<TBD>` |
+| Project coordinator / contact person | Ampero S.r.l. | `tech@ampero.it` |
+| Commercial contact | Ampero S.r.l. | `tech@ampero.it` |
 | ARISE mentor | [TBD] | [TBD] |
 
 ### 3.4.4(b) Final Ethics Assessment & Roadmap for Future Use

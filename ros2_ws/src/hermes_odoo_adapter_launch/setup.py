@@ -18,8 +18,8 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="Francesco Solinas",
-    maintainer_email="francesco.solinas@olorin.tech",
+    maintainer="Ampero S.r.l.",
+    maintainer_email="tech@ampero.it",
     description=(
         "ament_python wrapper exposing the HERMES Odoo Adapter launch "
         "file via the ROS 2 package index."

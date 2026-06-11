@@ -543,19 +543,12 @@ JSON logs with correlation IDs via `structlog`:
   / Dynamic Types tooling but the adapter doesn't yet exercise them
   (listed under §3.3.10 future work).
 
-## Citation / contact
+## Contact
 
-- **Maintainer:** Francesco Solinas — `francesco.solinas@olorin.tech` — Ampero S.r.l.
+- **Maintainer:** Ampero S.r.l. — `tech@ampero.it`
 - **Issue tracker:** <https://github.com/Ampero-SRL/hermes-odoo-adapter/issues>
 - **ARISE D4 written report (draft):** [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md)
 - **Third-party licenses:** [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)
-
-Cite as:
-
-> Solinas, F. (2026). *HERMES Odoo Adapter — an ARISE Reusable HRI
-> Module bridging Odoo, FIWARE NGSI-LD and Vulcanexus / ROS 2 with a
-> ROS4HRI Intent publisher.* Ampero S.r.l.
-> <https://github.com/Ampero-SRL/hermes-odoo-adapter>.
 
 ## License
 
