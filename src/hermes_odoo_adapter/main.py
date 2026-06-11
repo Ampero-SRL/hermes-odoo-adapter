@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import FastAPI, HTTPException, Request, Response, BackgroundTasks, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse, FileResponse
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, ConfigDict, ValidationError
 import uvicorn
 
 from .settings import settings
@@ -269,14 +269,15 @@ class ConsumeRequest(BaseModel):
     sku: str
     quantity: int
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "project_id": "urn:ngsi-ld:Project:P123",
                 "sku": "PCB-CTRL-REV21",
-                "quantity": 1
+                "quantity": 1,
             }
         }
+    )
 
 
 class ProduceRequest(BaseModel):
@@ -285,14 +286,15 @@ class ProduceRequest(BaseModel):
     sku: str
     quantity: int = 1
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "project_id": "urn:ngsi-ld:Project:P123",
                 "sku": "CTRL-PANEL-A1",
-                "quantity": 1
+                "quantity": 1,
             }
         }
+    )
 
 
 # Middleware for correlation ID and request timing

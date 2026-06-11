@@ -80,6 +80,15 @@ data/
 !docker/odoo/custom_addons/**/data/**
 *.db
 
+# Test / browser-automation / cast artefacts that occasionally leak from
+# tooling runs (codex sessions, playwright captures, vhs renders).
+.playwright-mcp/
+playwright-report/
+test-results/
+*.cast
+media/demo.gif
+media/demo.mp4
+
 # Local configuration overrides
 .env.local
 docker-compose.override.yml

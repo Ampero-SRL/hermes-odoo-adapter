@@ -13,7 +13,7 @@
 # (Orion-LD), SOAP 1.1 (Hanel).
 
 # ── Stage 1: Build hermes_msgs + install Python deps ─────────────────
-FROM eprosima/vulcanexus:humble AS builder
+FROM eprosima/vulcanexus:humble@sha256:595c7f1360008fb92e79a1232837dcabc30e434636df8c59500090619b75a839 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -52,7 +52,14 @@ RUN poetry config virtualenvs.create false && \
     rm -rf /root/.cache
 
 # ── Stage 2: Production image ────────────────────────────────────────
-FROM eprosima/vulcanexus:humble AS production
+# Pinned by digest for the D4 submission's 2033-stability commitment
+# (D4 §3.2.1) — the floating `humble` tag is avoided so a rebuild years
+# from now produces byte-identical layers. To bump:
+#   docker pull eprosima/vulcanexus:humble
+#   docker image inspect eprosima/vulcanexus:humble \
+#       --format '{{index .RepoDigests 0}}'
+# …and replace the sha256 below in BOTH FROM lines.
+FROM eprosima/vulcanexus:humble@sha256:595c7f1360008fb92e79a1232837dcabc30e434636df8c59500090619b75a839 AS production
 
 ENV DEBIAN_FRONTEND=noninteractive
 

@@ -4,7 +4,7 @@ Configuration settings for HERMES Odoo Adapter
 import json
 from typing import Annotated, Any, List, Optional
 from pydantic import Field, validator
-from pydantic_settings import BaseSettings, NoDecode
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 def _parse_str_list(value: Any) -> Any:
@@ -278,10 +278,11 @@ class Settings(BaseSettings):
             raise ValueError(f"Log level must be one of: {valid_levels}")
         return v_upper
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
 
 
 # Global settings instance
