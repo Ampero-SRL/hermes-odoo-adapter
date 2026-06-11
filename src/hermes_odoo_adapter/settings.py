@@ -282,6 +282,14 @@ class Settings(BaseSettings):
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
+        # `.env.example` carries a few historical knobs
+        # (POLL_INTERVAL_SECONDS, MAX_RETRIES, RETRY_DELAY_SECONDS) that
+        # are no longer modelled on `Settings`. pydantic-settings v2
+        # defaults to `extra="forbid"` and would crash on those at
+        # startup, breaking the `cp .env.example .env` reproducibility
+        # promise. `extra="ignore"` restores the v1 default — unknown
+        # env vars are silently dropped.
+        extra="ignore",
     )
 
 
