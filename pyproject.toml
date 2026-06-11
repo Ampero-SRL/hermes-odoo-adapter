@@ -2,7 +2,7 @@
 name = "hermes-odoo-adapter"
 version = "2.0.0"
 description = "Hybrid ROS2 + FastAPI adapter for Odoo ERP, FIWARE, and warehouse integration in HERMES"
-authors = ["Francesco Solinas <francesco.solinas@olorin.tech>"]
+authors = ["Ampero S.r.l. <tech@ampero.it>"]
 license = "Apache-2.0"
 readme = "README.md"
 homepage = "https://github.com/Ampero-SRL/hermes-odoo-adapter"

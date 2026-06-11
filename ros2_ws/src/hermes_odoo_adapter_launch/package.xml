@@ -12,7 +12,7 @@
     works alongside the path-based invocation documented in
     ../../../launch/README.md.
   </description>
-  <maintainer email="francesco.solinas@olorin.tech">Francesco Solinas</maintainer>
+  <maintainer email="tech@ampero.it">Ampero S.r.l.</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_python</buildtool_depend>
