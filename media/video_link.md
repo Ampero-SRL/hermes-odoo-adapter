@@ -75,7 +75,8 @@ A pre-made `vhs` tape file is shipped at
 | Asset | URL |
 |---|---|
 | D3 TRL6-7 demonstrator video (canonical for D4) | [TBD: paste D3 video URL] |
-| Optional short open-module demo clip | [TBD] |
+| Optional short open-module demo clip — local asciinema cast | ✅ [`demo.cast`](demo.cast) (captured 2026-06-11; 50+ frames over ~30 s of demo flow). Play locally with `asciinema play media/demo.cast` (`pip install --user asciinema`) or upload to asciinema.org for a shareable URL. |
+| Optional short open-module demo clip — asciinema.org URL | [TBD: `asciinema upload media/demo.cast` to publish + paste the URL] |
 | Zenodo / archival mirror | [TBD] |
 
 ## Screenshot derivatives
