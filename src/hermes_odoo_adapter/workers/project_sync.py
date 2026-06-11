@@ -72,6 +72,20 @@ class ProjectSyncWorker:
             )
 
 
+    @staticmethod
+    def _extract_sku(line: Dict[str, Any]) -> str:
+        """Best-effort SKU extraction from an Odoo `mrp.bom.line` row.
+
+        ``product_id`` on a fresh read is usually a ``(id, name)`` 2-list,
+        but Odoo can return ``[id]`` (length-1) or ``False`` (null
+        many2one). Falls back to a `product_code` column when neither
+        works.
+        """
+        prod = line.get("product_id")
+        if isinstance(prod, (list, tuple)) and len(prod) >= 2:
+            return str(prod[1] or "")
+        return str(line.get("product_code") or "")
+
     async def setup_subscription(self) -> bool:
         """Setup Orion-LD subscription for Project entities"""
         subscription_config = {
@@ -216,19 +230,28 @@ class ProjectSyncWorker:
             # has asked for kit X to be fulfilled" at the moment the
             # adapter ingests the order. The publisher is a no-op if
             # ROS 2 / hri_actions_msgs are unavailable.
-            self._publish_planner_intent(
-                bom_id=str(bom.get("id", "")),
-                project_id=project_id,
-                bom_lines=[
-                    {
-                        "sku": (line.get("product_id") or [None, None])[1]
-                               or line.get("product_code")
-                               or "",
-                        "qty": line.get("product_qty", 0),
-                    }
-                    for line in bom_lines
-                ],
-            )
+            bom_id_raw = bom.get("id")
+            if bom_id_raw:
+                self._publish_planner_intent(
+                    bom_id=str(bom_id_raw),
+                    project_id=project_id,
+                    bom_lines=[
+                        # Odoo's `product_id` is a `(id, name)` tuple/list,
+                        # but recordset reads sometimes return only `[id]`
+                        # (length-1) or `False` (null many2one). Guard
+                        # against both before subscripting `[1]`.
+                        {
+                            "sku": self._extract_sku(line),
+                            "qty": line.get("product_qty", 0),
+                        }
+                        for line in bom_lines
+                    ],
+                )
+            else:
+                logger.warning(
+                    "Skipping ROS4HRI Intent publish — Odoo BOM has no id",
+                    project_id=project_id,
+                )
 
             # Step 4: Check stock availability
             result = await self._check_stock_availability(project_id, bom_lines, quantity)

@@ -164,10 +164,24 @@ async def lifespan(app: FastAPI):
                 # Sprint 0.4 — once the ROS 2 node is up, hand its
                 # ROS4HRI Intent publisher to the project worker so any
                 # Odoo planner MO ingestion emits an Intent on /intents.
+                # Only wire the publisher if `hri_actions_msgs` is
+                # actually importable; otherwise the bound method is a
+                # no-op that would silently drop every Intent. Surface
+                # the gap as a single warning at startup so an operator
+                # can see it.
                 if project_worker is not None and _ros2_node is not None:
-                    project_worker.set_intent_publisher(
-                        _ros2_node.publish_planner_intent
-                    )
+                    if getattr(_ros2_node, "_intent_pub", None) is not None:
+                        project_worker.set_intent_publisher(
+                            _ros2_node.publish_planner_intent
+                        )
+                    else:
+                        logger.warning(
+                            "ROS4HRI Intent publisher disabled — "
+                            "`hri_actions_msgs` is not built into the "
+                            "workspace. /intents traffic will be silent. "
+                            "Rebuild with `vcs import < ros2_ws/deps.repos` "
+                            "+ `colcon build --packages-select hri_actions_msgs`."
+                        )
             except ImportError:
                 logger.warning(
                     "rclpy not available — ROS2 node disabled. "

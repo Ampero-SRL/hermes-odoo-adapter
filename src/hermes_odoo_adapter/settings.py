@@ -284,11 +284,15 @@ class Settings(BaseSettings):
         case_sensitive=False,
         # `.env.example` carries a few historical knobs
         # (POLL_INTERVAL_SECONDS, MAX_RETRIES, RETRY_DELAY_SECONDS) that
-        # are no longer modelled on `Settings`. pydantic-settings v2
-        # defaults to `extra="forbid"` and would crash on those at
-        # startup, breaking the `cp .env.example .env` reproducibility
-        # promise. `extra="ignore"` restores the v1 default — unknown
-        # env vars are silently dropped.
+        # are no longer modelled on `Settings`. Pinning `extra="ignore"`
+        # explicitly (a) preserves the documented contract that
+        # `.env.example` may carry unmodeled fields, and (b) protects
+        # against a future tightening of the upstream default (the
+        # pydantic-settings project has discussed switching to
+        # `extra="forbid"` in v3). Trade-off: typo'd env var names
+        # (e.g. `OROIN_URL`) silently fall back to the field default
+        # rather than crashing fast. Operators with strict-config
+        # requirements should set `extra="forbid"` in their fork.
         extra="ignore",
     )
 

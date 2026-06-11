@@ -285,7 +285,15 @@ class OrionClient:
         therefore means "success, empty body" — not a failure. A failure
         path raises ``OrionAPIError`` from ``_make_request``, or returns a
         dict with an ``"error"`` key (e.g. 409 conflict).
+
+        Defensive note: ``_make_request`` also returns ``None`` for **404**
+        (the underlying GET handler), so a deployment where Orion's
+        routing is broken (proxy misconfig, version mismatch) could look
+        like a successful 201 create. After taking the success branch we
+        verify via a follow-up ``get_subscription`` — if the subscription
+        isn't actually there, downgrade to a logged failure.
         """
+        sub_id = subscription.get("id")
         with metrics.time_orion_operation("subscribe", "Subscription"):
             logger.info(
                 "Creating NGSI-LD subscription",
@@ -308,13 +316,33 @@ class OrionClient:
                 # idempotent success.
                 logger.info(
                     "NGSI-LD subscription already exists — treating as success",
-                    subscription_id=subscription.get("id"),
+                    subscription_id=sub_id,
                 )
-                return subscription.get("id", "subscription_exists")
+                return sub_id or "subscription_exists"
 
             # result is None (201 No Content) or a non-error dict — both
-            # are successes.
-            return subscription.get("id", "subscription_created")
+            # SHOULD be successes. Verify with a follow-up GET so a
+            # silently-misrouted POST doesn't look like a successful create.
+            if sub_id:
+                try:
+                    verify = await self.get_subscription(sub_id)
+                except Exception as exc:
+                    logger.warning(
+                        "NGSI-LD subscription create verification failed",
+                        subscription_id=sub_id,
+                        error=str(exc),
+                    )
+                    return None
+                if not verify:
+                    logger.error(
+                        "NGSI-LD subscription create returned success "
+                        "but the entity is not retrievable — Orion routing "
+                        "is likely broken",
+                        subscription_id=sub_id,
+                    )
+                    return None
+
+            return sub_id or "subscription_created"
     
     async def get_subscription(self, subscription_id: str) -> Optional[Dict[str, Any]]:
         """Get an NGSI-LD subscription"""

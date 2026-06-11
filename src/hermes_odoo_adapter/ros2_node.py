@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import threading
 import uuid
 from typing import Any, Optional
 
@@ -157,6 +158,17 @@ class HermesAdapterNode(Node):
         # Operator-side intents (HoloLens placement / project selection /
         # assembly complete) are published from companion nodes closer to
         # their source — see docs/02_interfaces.md §4 and D4_PLAN.md §4.4.
+        # `publish_planner_intent()` is invoked from the asyncio loop
+        # thread (the project sync worker runs there), while the rclpy
+        # executor spins this node — including the 1 Hz diagnostics timer
+        # — on a separate thread. rclpy publishers ARE thread-safe in
+        # practice (the Python bindings hold the GIL during the C call,
+        # and the underlying Fast-DDS publisher is documented as
+        # thread-safe for `publish` operations), but the upstream
+        # contract isn't formally stated for rclpy itself. A small lock
+        # makes the cross-thread call defensible without restructuring
+        # the worker → node communication.
+        self._intent_pub_lock = threading.Lock()
         self._intent_pub = None
         if HRI_INTENT_AVAILABLE:
             self._intent_pub = self.create_publisher(
@@ -250,20 +262,27 @@ class HermesAdapterNode(Node):
         }
 
         msg = _HriIntent()
-        # Intent.msg uses the standard `intent` / `source` / `modality`
-        # SCREAMING_SNAKE_CASE constants on the wire; the field type is a
-        # plain string so we can also pass a free-form value like
-        # `erp/odoo` for the source. See
-        # https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg
-        msg.intent = "START_ACTIVITY"
+        # IMPORTANT: read the constants off the class, not the literal
+        # uppercase name. Upstream Intent.msg defines
+        #
+        #   string START_ACTIVITY = __intent_start_activity__
+        #   string MODALITY_OTHER = __modality_other__
+        #
+        # …so `Intent.START_ACTIVITY == "__intent_start_activity__"` and a
+        # conformant ROS4HRI subscriber filtering by `msg.intent ==
+        # Intent.START_ACTIVITY` would silently drop messages whose
+        # `intent` field held the literal string "START_ACTIVITY".
+        # See https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg
+        msg.intent = _HriIntent.START_ACTIVITY
         msg.source = source
-        msg.modality = "MODALITY_OTHER"
+        msg.modality = _HriIntent.MODALITY_OTHER
         msg.confidence = 1.0
         msg.data = json.dumps(payload, separators=(",", ":"))
 
-        self._intent_pub.publish(msg)
+        with self._intent_pub_lock:
+            self._intent_pub.publish(msg)
         self.get_logger().info(
-            f"Published ROS4HRI Intent: START_ACTIVITY "
+            f"Published ROS4HRI Intent: {msg.intent} "
             f"bom={bom_id} project={project_id} source={source} "
             f"bom_lines={len(payload['bom'])}"
         )
