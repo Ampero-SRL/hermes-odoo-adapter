@@ -86,6 +86,11 @@ data/
 playwright-report/
 test-results/
 *.cast
+# …but DO ship the canonical demo recording (media/demo.cast) — it's a
+# D4 deliverable per media/video_link.md, captured 2026-06-11 by running
+# `asciinema rec -c 'bash scripts/demo_walkthrough.sh' media/demo.cast`
+# against a fresh demo stack.
+!media/demo.cast
 media/demo.gif
 media/demo.mp4
 
