@@ -185,7 +185,11 @@ class TestOrionClient:
             result = await orion_client.create_entity(reservation)
             
             assert result == {"created": True}
-            mock_request.assert_called_once_with("POST", "ngsi-ld/v1/entities", reservation.dict(by_alias=True))
+            mock_request.assert_called_once_with(
+                "POST",
+                "ngsi-ld/v1/entities",
+                reservation.model_dump(by_alias=True, exclude_none=True),
+            )
     
     @pytest.mark.asyncio
     async def test_create_entity_with_dict(self, orion_client):
@@ -268,12 +272,14 @@ class TestOrionClient:
                 mock_get.assert_called_once()
                 mock_update.assert_called_once()
                 
-                # Verify update data excludes id, type, @context
+                # Verify update data excludes id, type (NGSI-LD PATCH
+                # rejects those in the body), but KEEPS @context — Orion
+                # requires it for application/ld+json PATCH calls.
                 update_call_args = mock_update.call_args[0]
                 update_data = update_call_args[1]
                 assert "id" not in update_data
                 assert "type" not in update_data
-                assert "@context" not in update_data
+                assert "@context" in update_data
     
     @pytest.mark.asyncio
     async def test_upsert_entity_no_id(self, orion_client):
@@ -327,7 +333,9 @@ class TestOrionClient:
             assert params["q"] == "value>10"
             assert params["attrs"] == "value"
             assert params["limit"] == 50
-            assert params["offset"] == 0
+            # offset=0 is intentionally NOT added to the query params
+            # (Orion-LD defaults to 0); see orion_client.query_entities.
+            assert "offset" not in params
     
     @pytest.mark.asyncio
     async def test_query_entities_empty_result(self, orion_client):
@@ -341,35 +349,76 @@ class TestOrionClient:
     
     @pytest.mark.asyncio
     async def test_create_subscription(self, orion_client):
-        """Test subscription creation"""
+        """Subscription create succeeds when _make_request returns None
+        (Orion-LD's 201 No Content shape) AND the follow-up GET confirms
+        the subscription is retrievable.
+        """
         subscription = {
             "id": "test-subscription",
-            "subject": {
-                "entities": [{"type": "Test"}]
-            },
-            "notification": {
-                "endpoint": {"uri": "http://test.com/notify"}
-            }
+            "subject": {"entities": [{"type": "Test"}]},
+            "notification": {"endpoint": {"uri": "http://test.com/notify"}},
         }
-        
-        with patch.object(orion_client, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {"subscriptionId": "test-subscription"}
-            
+
+        with patch.object(
+            orion_client, "_make_request", new_callable=AsyncMock
+        ) as mock_request, patch.object(
+            orion_client, "get_subscription", new_callable=AsyncMock
+        ) as mock_get:
+            # _make_request returns None on 201 No Content; the follow-up
+            # GET returns the just-created subscription as a verification.
+            mock_request.return_value = None
+            mock_get.return_value = {"id": "test-subscription", "status": "active"}
+
             result = await orion_client.create_subscription(subscription)
-            
+
             assert result == "test-subscription"
-            mock_request.assert_called_once_with("POST", "ngsi-ld/v1/subscriptions", subscription)
-    
+            mock_request.assert_called_once_with(
+                "POST", "ngsi-ld/v1/subscriptions", subscription
+            )
+            mock_get.assert_called_once_with("test-subscription")
+
     @pytest.mark.asyncio
-    async def test_create_subscription_failure(self, orion_client):
-        """Test subscription creation failure"""
-        subscription = {"invalid": "subscription"}
-        
-        with patch.object(orion_client, '_make_request', new_callable=AsyncMock) as mock_request:
-            mock_request.return_value = {"error": "Invalid subscription"}
-            
+    async def test_create_subscription_failure_on_orion_error(self, orion_client):
+        """create_subscription returns None when _make_request raises an
+        OrionAPIError (Orion responded with a non-success status code)."""
+        from hermes_odoo_adapter.orion_client import OrionAPIError
+
+        subscription = {"id": "bad", "subject": {"entities": [{"type": "Test"}]}}
+
+        with patch.object(
+            orion_client, "_make_request", new_callable=AsyncMock
+        ) as mock_request:
+            mock_request.side_effect = OrionAPIError(
+                "Orion-LD API error: bad request",
+                status_code=400,
+                response_body='{"detail": "missing notification.endpoint"}',
+            )
+
             result = await orion_client.create_subscription(subscription)
-            
+
+            assert result is None
+
+    @pytest.mark.asyncio
+    async def test_create_subscription_failure_on_404_verification(self, orion_client):
+        """Defensive contract: if _make_request looked like a success
+        (None) but the follow-up GET returns None (404), treat as failure
+        — Orion routing is likely broken."""
+        subscription = {
+            "id": "test-subscription",
+            "subject": {"entities": [{"type": "Test"}]},
+            "notification": {"endpoint": {"uri": "http://test.com/notify"}},
+        }
+
+        with patch.object(
+            orion_client, "_make_request", new_callable=AsyncMock
+        ) as mock_request, patch.object(
+            orion_client, "get_subscription", new_callable=AsyncMock
+        ) as mock_get:
+            mock_request.return_value = None
+            mock_get.return_value = None  # 404 — not actually created
+
+            result = await orion_client.create_subscription(subscription)
+
             assert result is None
     
     @pytest.mark.asyncio
