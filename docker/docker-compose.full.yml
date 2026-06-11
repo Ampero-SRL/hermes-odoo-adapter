@@ -7,7 +7,6 @@ services:
   # Database for Orion-LD
   mongo:
     image: mongo:4.4
-    platform: linux/arm64
     command: --nojournal
     volumes:
       - mongo_data:/data/db
@@ -36,7 +35,6 @@ services:
   # PostgreSQL for real Odoo
   postgres:
     image: postgres:15
-    platform: linux/arm64
     environment:
       POSTGRES_DB: odoo
       POSTGRES_USER: odoo
@@ -52,7 +50,6 @@ services:
   # Real Odoo ERP System
   odoo:
     image: odoo:16
-    platform: linux/arm64
     depends_on:
       - postgres
     ports:
@@ -106,7 +103,6 @@ services:
   # Optional: Grafana for monitoring
   grafana:
     image: grafana/grafana:latest
-    platform: linux/arm64
     ports:
       - "3000:3000"
     environment:
@@ -123,7 +119,6 @@ services:
   # Optional: Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
-    platform: linux/arm64
     ports:
       - "9090:9090"
     volumes:

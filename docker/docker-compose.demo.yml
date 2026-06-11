@@ -4,7 +4,6 @@ services:
   # MongoDB for Orion-LD (ARM64 compatible)
   mongo:
     image: mongo:4.4
-    platform: linux/arm64
     container_name: hermes-mongo
     ports:
       - "27017:27017"
@@ -37,7 +36,6 @@ services:
   # Odoo Mock Service (FastAPI-based for initial development)
   odoo-mock:
     build: ./odoo-mock
-    platform: linux/arm64
     container_name: hermes-odoo-mock
     ports:
       - "8069:8069"
@@ -56,7 +54,6 @@ services:
     build:
       context: ..
       dockerfile: Dockerfile
-    platform: linux/arm64
     container_name: hermes-adapter
     ports:
       - "8080:8080"
@@ -80,7 +77,6 @@ services:
   # PostgreSQL (for real Odoo later)
   postgres:
     image: postgres:15-alpine
-    platform: linux/arm64
     container_name: hermes-postgres
     environment:
       - POSTGRES_DB=odoo
