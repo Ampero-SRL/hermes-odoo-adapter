@@ -3,7 +3,7 @@ Configuration settings for HERMES Odoo Adapter
 """
 import json
 from typing import Annotated, Any, List, Optional
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
@@ -79,10 +79,11 @@ class Settings(BaseSettings):
     )
 
     # ``NoDecode`` skips pydantic-settings' JSON pre-decoding so the
-    # ``@validator("…", pre=True)`` below can accept the bare comma-
-    # separated `FOO,BAR,BAZ` form straight from `.env` (which is what
-    # the shipped `.env.example` uses). Without NoDecode the env-source
-    # tries `json.loads` first and dies on the comma-separated value.
+    # ``@field_validator(mode="before")`` below can accept the bare
+    # comma-separated `FOO,BAR,BAZ` form straight from `.env` (which is
+    # what the shipped `.env.example` uses). Without NoDecode the
+    # env-source tries `json.loads` first and dies on the comma-
+    # separated value.
     inventory_allowed_skus: Annotated[List[str], NoDecode] = Field(
         default=[
             # Finished product
@@ -234,24 +235,28 @@ class Settings(BaseSettings):
         description="Enable webhook endpoints for real-time updates"
     )
     
-    @validator("orion_url", "odoo_url", "adapter_public_url")
+    @field_validator("orion_url", "odoo_url", "adapter_public_url")
+    @classmethod
     def validate_urls(cls, v: str) -> str:
         """Validate URL formats"""
         if not v.startswith(("http://", "https://")):
             raise ValueError("URL must start with http:// or https://")
         return v.rstrip("/")
 
-    @validator("inventory_allowed_skus", pre=True)
+    @field_validator("inventory_allowed_skus", mode="before")
+    @classmethod
     def parse_inventory_allowed_skus(cls, value):
         """Accept JSON list `["A","B"]` OR comma-separated `A,B` env strings."""
         return _parse_str_list(value)
 
-    @validator("stock_location_names", pre=True)
+    @field_validator("stock_location_names", mode="before")
+    @classmethod
     def parse_location_names(cls, v):
         """Accept JSON list `["A","B"]` OR comma-separated `A,B` env strings."""
         return _parse_str_list(v)
 
-    @validator("hanel_sku_tray_map", pre=True)
+    @field_validator("hanel_sku_tray_map", mode="before")
+    @classmethod
     def parse_hanel_sku_tray_map(cls, v):
         """Accept JSON object or ``SKU=N,SKU=N`` strings from env."""
         if isinstance(v, str):
@@ -268,8 +273,9 @@ class Settings(BaseSettings):
                     out[k.strip()] = int(val.strip())
             return out
         return v
-    
-    @validator("log_level")
+
+    @field_validator("log_level")
+    @classmethod
     def validate_log_level(cls, v: str) -> str:
         """Validate log level"""
         valid_levels = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}

@@ -9,13 +9,21 @@
 #
 # `hri_actions_msgs` is needed for the ROS4HRI Intent publisher
 # (Sprint 0.4, implemented in `ros2_node.py` / `workers/project_sync.py`).
-# No published apt package for it exists on Vulcanexus/Humble at the
-# time of writing, so the Dockerfile fetches it from source via
+# No published apt package exists on Vulcanexus/Humble at the time of
+# writing, so the Dockerfile fetches it from source via
 # `vcs import < ros2_ws/deps.repos` and colcon-builds it alongside the
-# vendored `hermes_msgs`. Pinned to the `humble-devel` branch.
+# vendored `hermes_msgs`.
+#
+# Pinned to a specific commit SHA (not the `humble-devel` branch tip)
+# for the D4 submission's 2033-stability commitment (D4 §3.2.1).
+# To bump:
+#   1. Pull / browse https://github.com/ros4hri/hri_actions_msgs/commits/humble-devel
+#   2. Pick a commit, paste its 40-char SHA below.
+#   3. Re-run `docker compose -f docker/docker-compose.demo.yml build adapter`
+#      to verify the new source still compiles.
 
 repositories:
   hri_actions_msgs:
     type: git
     url: https://github.com/ros4hri/hri_actions_msgs.git
-    version: humble-devel
+    version: cb330f8e33d207cfa211ffa56d4164c951f13bac  # humble-devel tip 2025-09-10
