@@ -1,40 +1,35 @@
 # Adapter startup logs — proves ROS4HRI Intent publisher live
-# captured 2026-06-10
+# captured 2026-06-11 (commit f96e0f0)
 
-$ docker compose -f docker/docker-compose.demo.yml logs adapter | head -40
-time="2026-06-10T18:13:34+02:00" level=warning msg="/tmp/d4-fresh-clone-test/hermes-odoo-adapter/docker/docker-compose.demo.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+$ docker compose -f docker/docker-compose.demo.yml logs adapter --since 5m | head -80
 hermes-adapter  | Starting HERMES Odoo Adapter v2.0 (ROS2 + FastAPI hybrid)
 hermes-adapter  |   ROS2 hermes_msgs sourced
 hermes-adapter  | ✓ Odoo mock detected — skipping HERMES Odoo seeding
-hermes-adapter  | /app/src/hermes_odoo_adapter/main.py:266: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-hermes-adapter  |   class ConsumeRequest(BaseModel):
-hermes-adapter  | /app/src/hermes_odoo_adapter/main.py:282: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
-hermes-adapter  |   class ProduceRequest(BaseModel):
-hermes-adapter  | {"version": "2.0.0", "event": "Starting HERMES Odoo Adapter", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-10T16:13:03.464220Z"}
-hermes-adapter  | {"url": "http://odoo-mock:8069/jsonrpc", "database": "odoo", "event": "Odoo client initialized", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-10T16:13:03.464341Z"}
-hermes-adapter  | {"base_url": "http://orion-ld:1026", "tenant": "", "event": "Orion client initialized", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:13:03.464393Z"}
+hermes-adapter  | {"version": "2.0.0", "event": "Starting HERMES Odoo Adapter", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-11T10:31:08.473680Z"}
+hermes-adapter  | {"url": "http://odoo-mock:8069/jsonrpc", "database": "odoo", "event": "Odoo client initialized", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-11T10:31:08.474051Z"}
+hermes-adapter  | {"base_url": "http://orion-ld:1026", "tenant": "", "event": "Orion client initialized", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-11T10:31:08.474136Z"}
 hermes-adapter  | Creating NullWarehouseClient (dev/test mode)
-hermes-adapter  | {"event": "Orion-LD is reachable", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:13:03.536879Z"}
-hermes-adapter  | {"database": "odoo", "username": "admin", "event": "Authenticating with Odoo", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-10T16:13:03.572226Z"}
-hermes-adapter  | {"user_id": 1, "event": "Odoo authentication successful", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-10T16:13:03.576332Z"}
+hermes-adapter  | {"event": "Retrying hermes_odoo_adapter.orion_client.OrionClient._make_request in 1.0 seconds as it raised OrionConnectionError: Request error: All connection attempts failed.", "level": "warning", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-11T10:31:08.537275Z"}
+hermes-adapter  | {"event": "Orion-LD is reachable", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-11T10:31:09.570919Z"}
+hermes-adapter  | {"database": "odoo", "username": "admin", "event": "Authenticating with Odoo", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-11T10:31:09.606955Z"}
+hermes-adapter  | {"user_id": 1, "event": "Odoo authentication successful", "level": "info", "logger": "hermes_odoo_adapter.odoo_client", "timestamp": "2026-06-11T10:31:09.611216Z"}
 hermes-adapter  | NullWarehouseClient connected (dev/test mode)
-hermes-adapter  | {"sync_interval": 600, "batch_size": 100, "event": "Inventory sync worker initialized", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-10T16:13:03.576708Z"}
-hermes-adapter  | {"sync_interval_s": 60, "backend": "null", "event": "WarehouseSyncWorker initialized", "level": "info", "logger": "hermes_odoo_adapter.workers.warehouse_sync", "timestamp": "2026-06-10T16:13:03.576785Z"}
-hermes-adapter  | {"notification_url": "http://adapter:8080/orion/notifications", "event": "Creating NGSI-LD subscription", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:13:03.583652Z"}
-hermes-adapter  | {"subscription_id": "urn:ngsi-ld:Subscription:hermes-project", "event": "Failed to create NGSI-LD subscription", "level": "error", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:13:03.621652Z"}
-hermes-adapter  | {"subscription_id": "urn:ngsi-ld:Subscription:hermes-project", "event": "Failed to setup project subscription", "level": "error", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:13:03.621824Z"}
-hermes-adapter  | {"positional_args": ["null"], "event": "warehouse_sync worker not started (backend=%s does not support article/inventory sync)", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-10T16:13:03.621901Z"}
-hermes-adapter  | [INFO] [1781107983.843262676] [hermes_adapter]: ROS4HRI Intent publisher up on /intents (hri_actions_msgs.msg.Intent)
-hermes-adapter  | [INFO] [1781107983.843579551] [hermes_adapter]: HermesAdapterNode ready — services: warehouse/pick, warehouse/status, warehouse/cancel, stock/consume, stock/produce | topics: /diagnostics, /hermes/warehouse/tray_state (latched), /intents
-hermes-adapter  | {"node_name": "hermes_adapter", "event": "ROS2 node started", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-10T16:13:03.844247Z"}
-hermes-adapter  | {"event": "ROS4HRI Intent publisher wired into ProjectSyncWorker", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:13:03.844367Z"}
-hermes-adapter  | {"event": "HERMES Odoo Adapter v2.0 started successfully", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-10T16:13:03.844403Z"}
-hermes-adapter  | {"event": "Starting inventory sync worker", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-10T16:13:03.844478Z"}
-hermes-adapter  | {"event": "Starting inventory sync", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-10T16:13:03.844526Z"}
-hermes-adapter  | {"count": 1, "event": "Found products with stock", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-10T16:13:03.849703Z"}
+hermes-adapter  | {"sync_interval": 600, "batch_size": 100, "event": "Inventory sync worker initialized", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-11T10:31:09.611506Z"}
+hermes-adapter  | {"sync_interval_s": 60, "backend": "null", "event": "WarehouseSyncWorker initialized", "level": "info", "logger": "hermes_odoo_adapter.workers.warehouse_sync", "timestamp": "2026-06-11T10:31:09.611564Z"}
+hermes-adapter  | {"subscription_id": "urn:ngsi-ld:Subscription:hermes-project", "event": "NGSI-LD subscription exists and is active", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-11T10:31:09.620698Z"}
+hermes-adapter  | {"subscription_id": "urn:ngsi-ld:Subscription:hermes-project", "event": "Project subscription setup completed", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-11T10:31:09.620815Z"}
+hermes-adapter  | {"positional_args": ["null"], "event": "warehouse_sync worker not started (backend=%s does not support article/inventory sync)", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-11T10:31:09.620867Z"}
+hermes-adapter  | [INFO] [1781173869.888832476] [hermes_adapter]: ROS4HRI Intent publisher up on /intents (hri_actions_msgs.msg.Intent)
+hermes-adapter  | [INFO] [1781173869.889137810] [hermes_adapter]: HermesAdapterNode ready — services: warehouse/pick, warehouse/status, warehouse/cancel, stock/consume, stock/produce | topics: /diagnostics, /hermes/warehouse/tray_state (latched), /intents
+hermes-adapter  | {"node_name": "hermes_adapter", "event": "ROS2 node started", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-11T10:31:09.889716Z"}
+hermes-adapter  | {"event": "ROS4HRI Intent publisher wired into ProjectSyncWorker", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-11T10:31:09.889860Z"}
+hermes-adapter  | {"event": "HERMES Odoo Adapter v2.0 started successfully", "level": "info", "logger": "hermes_odoo_adapter.main", "timestamp": "2026-06-11T10:31:09.889909Z"}
+hermes-adapter  | {"event": "Starting inventory sync worker", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-11T10:31:09.890001Z"}
+hermes-adapter  | {"event": "Starting inventory sync", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-11T10:31:09.890071Z"}
+hermes-adapter  | {"count": 1, "event": "Found products with stock", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-11T10:31:09.896072Z"}
 hermes-adapter  | /usr/local/lib/python3.10/dist-packages/pydantic/main.py:464: UserWarning: Pydantic serializer warnings:
 hermes-adapter  |   PydanticSerializationUnexpectedValue(Expected `str` - serialized value may not be as expected [field_name='context', input_value={}, input_type=dict])
 hermes-adapter  |   return self.__pydantic_serializer__.to_python(
-hermes-adapter  | {"entity_id": "urn:ngsi-ld:InventoryItem:CTRL-PANEL-A1", "entity_type": "InventoryItem", "event": "Updating NGSI-LD entity", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:13:03.857848Z"}
-hermes-adapter  | {"processed": 1, "updated": 1, "errors": 0, "duration_seconds": 0.030437, "event": "Inventory sync completed", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-10T16:13:03.875006Z"}
-hermes-adapter  | [INFO] [1781107984.822479884] [hermes_adapter]: tray_state → -1 (prev=None)
+hermes-adapter  | {"entity_id": "urn:ngsi-ld:InventoryItem:CTRL-PANEL-A1", "entity_type": "InventoryItem", "event": "Updating NGSI-LD entity", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-11T10:31:09.904887Z"}
+hermes-adapter  | {"processed": 1, "updated": 1, "errors": 0, "duration_seconds": 0.033174, "event": "Inventory sync completed", "level": "info", "logger": "hermes_odoo_adapter.workers.inventory_sync", "timestamp": "2026-06-11T10:31:09.923264Z"}
+hermes-adapter  | [INFO] [1781173870.861274060] [hermes_adapter]: tray_state → -1 (prev=None)
