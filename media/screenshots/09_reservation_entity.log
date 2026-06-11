@@ -1,43 +1,47 @@
-[
-    {
-        "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
-        "type": "Reservation",
-        "lines": {
-            "type": "Property",
-            "value": [
-                {
-                    "sku": "SCH-REL-24V",
-                    "qty": 4,
-                    "unit": "Unit"
-                },
-                {
-                    "sku": "ABB-MCB-10A",
-                    "qty": 2,
-                    "unit": "Unit"
-                },
-                {
-                    "sku": "DIN-TERM-2.5",
-                    "qty": 8,
-                    "unit": "Unit"
-                },
-                {
-                    "sku": "WAGO-221-412",
-                    "qty": 6,
-                    "unit": "Unit"
-                }
-            ]
-        },
-        "projectRef": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Project:demo-ctrl-1"
-        },
-        "source": {
-            "type": "Property",
-            "value": "odoo"
-        },
-        "status": {
-            "type": "Property",
-            "value": "pending"
-        }
-    }
-]
+# urn:ngsi-ld:Reservation:demo-ctrl-1 — captured 2026-06-11 (commit f96e0f0)
+# Produced by ProjectSyncWorker._process_project_request when the
+# BOM is fully satisfied by current stock. All 4 BOM lines for the
+# DEMO-CTRL kit (CTRL-PANEL-A1) have available stock.
+
+$ curl -s 'http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Reservation:demo-ctrl-1' | jq .
+{
+  "id": "urn:ngsi-ld:Reservation:demo-ctrl-1",
+  "type": "Reservation",
+  "projectRef": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
+  },
+  "lines": {
+    "type": "Property",
+    "value": [
+      {
+        "sku": "SCH-REL-24V",
+        "qty": 4,
+        "unit": "Unit"
+      },
+      {
+        "sku": "ABB-MCB-10A",
+        "qty": 2,
+        "unit": "Unit"
+      },
+      {
+        "sku": "DIN-TERM-2.5",
+        "qty": 8,
+        "unit": "Unit"
+      },
+      {
+        "sku": "WAGO-221-412",
+        "qty": 6,
+        "unit": "Unit"
+      }
+    ]
+  },
+  "status": {
+    "type": "Property",
+    "value": "pending"
+  },
+  "source": {
+    "type": "Property",
+    "value": "odoo"
+  }
+}

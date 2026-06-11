@@ -1,16 +1,23 @@
+# urn:ngsi-ld:Project:demo-ctrl-1 — captured 2026-06-11 (commit f96e0f0)
+# After a successful recompute the Project status transitions
+# requested → processing (a Reservation is created in parallel).
+# If stock is insufficient the status transitions to "shortage" instead
+# (and a Shortage entity is created — see 07_shortage_entity.log).
+
+$ curl -s 'http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Project:demo-ctrl-1' | jq .
 {
-    "id": "urn:ngsi-ld:Project:demo-ctrl-1",
-    "type": "https://hermes.example.org/contexts/manufacturing#Project",
-    "https://hermes.example.org/contexts/manufacturing#code": {
-        "type": "Property",
-        "value": "DEMO-CTRL"
-    },
-    "https://hermes.example.org/contexts/manufacturing#station": {
-        "type": "Property",
-        "value": "assembly-cell-1"
-    },
-    "status": {
-        "type": "Property",
-        "value": "shortage"
-    }
+  "id": "urn:ngsi-ld:Project:demo-ctrl-1",
+  "type": "https://hermes.example.org/contexts/manufacturing#Project",
+  "https://hermes.example.org/contexts/manufacturing#code": {
+    "type": "Property",
+    "value": "DEMO-CTRL"
+  },
+  "https://hermes.example.org/contexts/manufacturing#station": {
+    "type": "Property",
+    "value": "assembly-cell-1"
+  },
+  "status": {
+    "type": "Property",
+    "value": "processing"
+  }
 }

@@ -1,8 +1,10 @@
-hermes-adapter  | {"bom_id": 1, "bom_line_count": 4, "event": "Found BOM", "correlationId": "cc48b70b-9ed4-42ea-b658-e1c180334c9d", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:18:32.245271Z"}
-hermes-adapter  | {"line_count": 4, "event": "Retrieved BOM lines", "correlationId": "cc48b70b-9ed4-42ea-b658-e1c180334c9d", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:18:32.247110Z"}
-hermes-adapter  | [INFO] [1781108312.248425124] [hermes_adapter]: Published ROS4HRI Intent: START_ACTIVITY mo=1 project=demo-ctrl-1 source=erp/odoo bom_lines=4
-hermes-adapter  | {"entity_id": "urn:ngsi-ld:Shortage:demo-ctrl-1", "entity_type": "Shortage", "event": "Creating NGSI-LD entity", "correlationId": "cc48b70b-9ed4-42ea-b658-e1c180334c9d", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:18:32.288847Z"}
-hermes-adapter  | [INFO] [1781108368.181649442] [hermes_adapter]: Published ROS4HRI Intent: START_ACTIVITY mo=1 project=demo-ctrl-1 source=erp/odoo bom_lines=4
-hermes-adapter  | {"entity_id": "urn:ngsi-ld:Reservation:demo-ctrl-1", "entity_type": "Reservation", "event": "Creating NGSI-LD entity", "correlationId": "32089b5c-819c-4508-9a54-38691cf88fe6", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.orion_client", "timestamp": "2026-06-10T16:19:28.220220Z"}
-hermes-adapter  | {"project_id": "demo-ctrl-1", "status": "processing", "event": "Updated project status", "correlationId": "32089b5c-819c-4508-9a54-38691cf88fe6", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:19:28.226595Z"}
-hermes-adapter  | {"project_id": "demo-ctrl-1", "reservation_line_count": 4, "event": "Created reservation", "correlationId": "32089b5c-819c-4508-9a54-38691cf88fe6", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-10T16:19:28.226721Z"}
+# /intents — ROS4HRI Intent published by ProjectSyncWorker
+# captured 2026-06-11 (commit f96e0f0) — note the corrected wire values:
+#   intent  = __intent_start_activity__   (Intent.START_ACTIVITY constant)
+#   modality = __modality_other__         (Intent.MODALITY_OTHER constant)
+# Verified against https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg
+
+$ docker compose -f docker/docker-compose.demo.yml logs adapter | grep "Published ROS4HRI Intent"
+hermes-adapter  | {"bom_id": 1, "bom_line_count": 4, "event": "Found BOM", "correlationId": "775e2ba4-d9f0-46ed-872d-692cb6b316d5", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-11T10:31:46.709557Z"}
+hermes-adapter  | {"line_count": 4, "event": "Retrieved BOM lines", "correlationId": "775e2ba4-d9f0-46ed-872d-692cb6b316d5", "projectId": "demo-ctrl-1", "level": "info", "logger": "hermes_odoo_adapter.workers.project_sync", "timestamp": "2026-06-11T10:31:46.711347Z"}
+hermes-adapter  | [INFO] [1781173906.712325244] [hermes_adapter]: Published ROS4HRI Intent: __intent_start_activity__ bom=1 project=demo-ctrl-1 source=erp/odoo bom_lines=4

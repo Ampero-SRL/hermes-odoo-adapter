@@ -1,24 +1,30 @@
-[
-    {
-        "id": "urn:ngsi-ld:Shortage:demo-ctrl-1",
-        "type": "Shortage",
-        "lines": {
-            "type": "Property",
-            "value": {
-                "sku": "WAGO-221-412",
-                "missingQty": 4,
-                "requiredQty": 6,
-                "availableQty": 2,
-                "unit": "Unit"
-            }
-        },
-        "projectRef": {
-            "type": "Relationship",
-            "object": "urn:ngsi-ld:Project:demo-ctrl-1"
-        },
-        "status": {
-            "type": "Property",
-            "value": "open"
-        }
+# urn:ngsi-ld:Shortage:demo-ctrl-1 — captured 2026-06-11 (commit f96e0f0)
+# Produced when the worker finds insufficient stock for at least one
+# BOM line. In this capture the Wago Connector (WAGO-221-412) was
+# deliberately drained to qty=2 (BOM needs 6) to force the shortage
+# path; the worker emits this entity AND updates the parent Project's
+# status to "shortage" (see 06_project_entity.log alternate state).
+
+$ curl -s 'http://localhost:1026/ngsi-ld/v1/entities/urn:ngsi-ld:Shortage:demo-ctrl-1' | jq .
+{
+  "id": "urn:ngsi-ld:Shortage:demo-ctrl-1",
+  "type": "Shortage",
+  "projectRef": {
+    "type": "Relationship",
+    "object": "urn:ngsi-ld:Project:demo-ctrl-1"
+  },
+  "lines": {
+    "type": "Property",
+    "value": {
+      "sku": "WAGO-221-412",
+      "missingQty": 4,
+      "requiredQty": 6,
+      "availableQty": 2,
+      "unit": "Unit"
     }
-]
+  },
+  "status": {
+    "type": "Property",
+    "value": "open"
+  }
+}

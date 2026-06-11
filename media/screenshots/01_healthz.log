@@ -1,9 +1,9 @@
-# /healthz — captured 2026-06-10 from a fresh clone (commit dbde58d)
+# /healthz — captured 2026-06-11 from a fresh clone (commit f96e0f0)
 # Demo stack: docker compose -f docker/docker-compose.demo.yml up -d
 
 $ curl -s http://localhost:8080/healthz | jq .
 {
-    "status": "healthy",
-    "service": "hermes-odoo-adapter",
-    "version": "2.0.0"
+  "status": "healthy",
+  "service": "hermes-odoo-adapter",
+  "version": "2.0.0"
 }
