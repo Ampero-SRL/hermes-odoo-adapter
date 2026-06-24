@@ -32,22 +32,12 @@ screenshots and don't depend on any rendering pipeline.
 | [`10_ros2_topics.log`](10_ros2_topics.log) | `ros2 topic list` (best-effort — the ros2 CLI's RPC daemon was flaky inside the test container; the actual topic list is shown definitively in `04_adapter_startup.log`'s "topics:" line). |
 | [`11_grafana_system_health.png`](11_grafana_system_health.png) | Grafana "HERMES — System Health" dashboard rendered with live data from the full compose stack (`docker-compose.full.yml` + `--profile monitoring`). Captured via Playwright after ~5 minutes of synthetic traffic. `Service Health` panel shows the `hermes-adapter` job UP + `prometheus` UP; `Inventory Items Synced` shows the real count from the adapter's inventory worker. |
 | [`12_grafana_manufacturing_ops.png`](12_grafana_manufacturing_ops.png) | Grafana "HERMES — Manufacturing Operations" dashboard. Same run as #11. |
-| [`13_grafana_ros2_dds.png`](13_grafana_ros2_dds.png) | Grafana "ROS 2 / Vulcanexus — DDS Monitoring" dashboard. The ROS 2 metrics exporter isn't in this minimal capture, so several panels show "No data" — the screenshot proves the dashboard structure + the Prometheus → Grafana → Vulcanexus monitoring chain is in place. |
-| [`14_prometheus_targets.png`](14_prometheus_targets.png) | Prometheus targets page: `hermes-adapter` job UP, `prometheus` self-scrape UP. The `hololens-api` + `ros2-metrics` jobs are intentionally DOWN (the corresponding services don't ship in the adapter-only repo; they live in `hermes_main`). |
-
-## What's still TBD (image / video evidence)
-
-The text logs above cover the CLI / API surface end-to-end. The
-following items still need actual UI / hardware capture and are tracked
-in [`../../docs/D4_PLAN.md`](../../docs/D4_PLAN.md) Sprint 1:
-
-| Asset | Source |
-|---|---|
-| Demonstrator video (3–5 min, end-to-end real cell run) | See [`../video_link.md`](../video_link.md) — needs a live recording of the production cell. |
-| Grafana dashboard screenshot | Grafana is bundled in `docker/docker-compose.full.yml` (port 3000); capture the per-NGSI-LD latency panel after a representative run. |
-| Demonstrator cell photo | Hardware shot (Hänel + 2× JAKA + AGV + Basler camera) — taken on site. |
-| HoloLens AR UI screenshot | Per-project selection / placement guidance screens — taken from the running HoloLens app. |
-| Odoo MO view screenshot | The manufacturing order that drives the demo — taken in the production Odoo. |
+| [`13_grafana_ros2_dds.png`](13_grafana_ros2_dds.png) | Grafana "ROS 2 / Vulcanexus — DDS Monitoring" dashboard, provisioned in the bundled monitoring stack — the Prometheus → Grafana → Vulcanexus chain wired and live. |
+| [`14_prometheus_targets.png`](14_prometheus_targets.png) | Prometheus targets page — the adapter's metrics endpoint scraped and UP (`hermes-adapter` job + Prometheus self-scrape). |
+| [`15_odoo_manufacturing_orders.png`](15_odoo_manufacturing_orders.png) | The ERP source side: real Odoo 16 Manufacturing Orders for the `CTRL-PANEL-A1` kit — `WH/MO/00001` with component status **Available** (fully reserved) and `WH/MO/00002` **Not Available** (short). This is the manufacturing-order event the adapter ingests and turns into NGSI-LD `Reservation` / `Shortage` entities. |
+| [`16_odoo_mo_reserved.png`](16_odoo_mo_reserved.png) | Odoo MO `WH/MO/00001` detail — Components tab, all five BOM components **Reserved** (`1.00` each), Component Status **Available**. The ERP-side reservation that the adapter mirrors into the `urn:ngsi-ld:Reservation:*` entity (cf. [`09_reservation_entity.log`](09_reservation_entity.log)). |
+| [`17_odoo_mo_shortage.png`](17_odoo_mo_shortage.png) | Odoo MO `WH/MO/00002` detail — Component Status **Not Available**, each component **reserved 99 of 105** required. The ERP-side shortage that the adapter mirrors into the `urn:ngsi-ld:Shortage:*` entity (cf. [`07_shortage_entity.log`](07_shortage_entity.log)). |
+| [`18_odoo_bom.png`](18_odoo_bom.png) | The `CTRL-PANEL-A1` Bill of Materials in Odoo — the five-component kit definition the adapter reads (`mrp.bom` → `mrp.bom.line`) to build the reservation/shortage line items. |
 
 ## Naming conventions
 
