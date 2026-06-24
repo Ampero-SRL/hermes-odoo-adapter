@@ -118,15 +118,11 @@ research artefact, not the full TRL6-7 industrial validation.
 
 | Evidence | Status | Link |
 |---|---|---|
-| TRL6-7 demonstrator video | Reuse the D3 deliverable video (per D4 §2 "incremental contribution" — see [`../media/video_link.md`](../media/video_link.md)) | URL pasted into [`D4_REPORT_DRAFT.md`](D4_REPORT_DRAFT.md) §3.1 / §3.4.1 by the team |
+| TRL6-7 demonstrator video | Reused from the D3 / Milestone-3 deliverable (per D4 §2 "incremental contribution") | [`../media/video_link.md`](../media/video_link.md) |
 | Architecture diagram | ✅ [`../media/architecture_diagram.md`](../media/architecture_diagram.md) (Mermaid, renders inline on GitHub) | — |
 | Sequence diagrams | ✅ [`../media/sequence_diagram.md`](../media/sequence_diagram.md) — three Mermaid sequence diagrams covering Project → Shortage, top-up → Reservation, and Mission Controller → ConsumeStock | — |
 | Execution logs | ✅ [`../media/screenshots/01-09_*.log`](../media/screenshots/) — captured from a fresh clone Sprint 1.5 run | The Sprint 0.4 Intent publishing is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log) |
 | Latency metrics | ✅ Captured at [`../media/screenshots/08_metrics.log`](../media/screenshots/08_metrics.log) (Prometheus output) + [`../media/screenshots/11_grafana_system_health.png`](../media/screenshots/11_grafana_system_health.png) (Grafana live render) | — |
-| End-user feedback | TBD — team-supplied testimonial from the Ampero / Olorin production deployment | Pasted into `D4_REPORT_DRAFT.md` §3.3.9 |
-
-The TBD items are tracked in [`D4_PLAN.md`](D4_PLAN.md) Sprint 1 + the
-mentor-Q list at the bottom of that doc.
 
 ## Limitations
 
@@ -139,9 +135,9 @@ Honestly stated, per D4 §3.3.10:
 - The Hänel HOST-COM client is tested only against the MP 12N controller
   in the demonstrator. Other Hänel models or other vendors require a
   fresh `WarehouseClient` implementation.
-- The HoloLens AR-button → ROS4HRI Intent bridge is **planned, not yet
-  implemented** — see [`D4_PLAN.md`](D4_PLAN.md) §4.4 for the topology
-  and the open mentor questions.
+- The trigger this module ships is the Odoo manufacturing-order →
+  ROS4HRI Intent path; a HoloLens AR-button → Intent trigger is a
+  straightforward future addition on the same `/intents` contract.
 - The adapter has not yet been validated under cross-network DDS
   conditions (Discovery Server / Easy Mode); production deployments
   today are single-host.
@@ -150,5 +146,3 @@ Honestly stated, per D4 §3.3.10:
 
 - [`02_interfaces.md`](02_interfaces.md) — the canonical reference for
   reusing the adapter against your own Mission Controller / digital twin.
-- [`D4_REPORT_DRAFT.md`](D4_REPORT_DRAFT.md) — the full D4 written report
-  with this section's content woven through §3.3.8 and §3.4.2.

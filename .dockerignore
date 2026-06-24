@@ -40,7 +40,6 @@ coverage.xml
 media/screenshots/*.png
 media/demo.gif
 media/demo.mp4
-docs/D4_REPORT_DRAFT.md.bak
 
 # Test outputs + node modules (if any creep in)
 node_modules/

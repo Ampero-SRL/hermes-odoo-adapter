@@ -108,5 +108,3 @@ demonstrator pipeline, see [`05_role_in_demonstrator.md`](05_role_in_demonstrato
 - [`03_installation_and_hello_world.md`](03_installation_and_hello_world.md) — clone-to-output in five commands.
 - [`04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md) — end-to-end Odoo → Orion → ROS 2 → mock-cobot walkthrough.
 - [`05_role_in_demonstrator.md`](05_role_in_demonstrator.md) — how this module slots into the full HERMES TRL6-7 demonstrator.
-- [`D4_REPORT_DRAFT.md`](D4_REPORT_DRAFT.md) — the ARISE D4 written-report working draft.
-- [`D4_PLAN.md`](D4_PLAN.md) — internal task plan for the D4 submission.

@@ -157,7 +157,7 @@ class HermesAdapterNode(Node):
         # directly ingests: an Odoo planner manufacturing-order event.
         # Operator-side intents (HoloLens placement / project selection /
         # assembly complete) are published from companion nodes closer to
-        # their source — see docs/02_interfaces.md §4 and D4_PLAN.md §4.4.
+        # their source — see docs/02_interfaces.md §4.
         # `publish_planner_intent()` is invoked from the asyncio loop
         # thread (the project sync worker runs there), while the rclpy
         # executor spins this node — including the 1 Hz diagnostics timer

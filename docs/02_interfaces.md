@@ -219,8 +219,7 @@ Odoo planner manufacturing-order intent**. Operator-side intents
 (HoloLens project-selection, placement confirmation, assembly-complete)
 live in companion ROS 2 nodes closer to their source
 (`hermes_main/ar_bridge_node`, a future companion next to
-`hermes_main/hololens_api`) and are mapped in
-[`D4_PLAN.md`](D4_PLAN.md) §4.4. The adapter re-uses the standard
+`hermes_main/hololens_api`). The adapter re-uses the standard
 `Intent.intent` constants where they fit and adds domain-specific
 labels where they don't. **No message extension** — the
 `hri_actions_msgs/Intent` envelope is used as-is, with a free-form
@@ -264,13 +263,13 @@ Only the **Odoo MO intent** is published from this repo, on **`/intents`**
 | Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"bom","id":"<bom_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` — `object.id` is the BOM id read from Odoo (`mrp.bom.id`). For deployments that carry an explicit MO id, pass it through `bom_id` instead. | **Used — standard constant + free-form source + JSON payload (codex-validated)** |
 
 For the **other** human-originated intents (HoloLens flows handled by
-companion nodes), see [`D4_PLAN.md`](D4_PLAN.md) §4.4 for the full mapping
-table. Codex-validated narrowing: only `START_ACTIVITY` cleanly fits a
-standard `Intent.intent` constant; `PLACE_OBJECT` / `STOP_ACTIVITY` would
-over-claim semantic equivalence (their upstream semantics are about
-commanding the robot or cancelling, not the operator confirming /
-completing). Domain labels `CONFIRM_PLACEMENT` and `COMPLETE_ACTIVITY` are
-used for those two flows instead.
+the `hermes_main` companion nodes), the same envelope applies with this
+narrowing: only `START_ACTIVITY` cleanly fits a standard `Intent.intent`
+constant; `PLACE_OBJECT` / `STOP_ACTIVITY` would over-claim semantic
+equivalence (their upstream semantics are about commanding the robot or
+cancelling, not the operator confirming / completing). Domain labels
+`CONFIRM_PLACEMENT` and `COMPLETE_ACTIVITY` are used for those two flows
+instead.
 
 ### Dependency
 

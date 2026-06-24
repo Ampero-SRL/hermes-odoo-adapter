@@ -37,8 +37,7 @@ single process so a downstream Mission Controller stays simple.
 | **ROS4HRI / ROS4RI** | Publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg) on the canonical `/intents` topic for every Odoo planner manufacturing-order event (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`). |
 
 For the full report-level narrative see
-[`docs/01_arise_context.md`](docs/01_arise_context.md) and the D4
-written-report draft at [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md).
+[`docs/01_arise_context.md`](docs/01_arise_context.md).
 
 ## Architecture
 
@@ -516,8 +515,6 @@ JSON logs with correlation IDs via `structlog`:
 - [`docs/03_installation_and_hello_world.md`](docs/03_installation_and_hello_world.md) — fresh-clone Hello World in five commands.
 - [`docs/04_basic_demo_how_to_use.md`](docs/04_basic_demo_how_to_use.md) — end-to-end Project → Shortage / Reservation walkthrough.
 - [`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md) — how the open module slots into the TRL6-7 demonstrator.
-- [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md) — ARISE D4 written report (working draft).
-- [`docs/D4_PLAN.md`](docs/D4_PLAN.md) — internal task plan + ROS4HRI mapping table.
 - [FIWARE Orion-LD](https://github.com/FIWARE/context.Orion-LD) — NGSI-LD Context Broker
 - [Vulcanexus](https://vulcanexus.io/) — eProsima Fast-DDS distribution for ROS2
 - [Odoo](https://github.com/odoo/odoo) — Open Source ERP
@@ -534,8 +531,8 @@ JSON logs with correlation IDs via `structlog`:
   (≈300 LOC).
 - ROS4HRI **operator** intents (HoloLens placement-confirmation /
   project-selected / assembly-complete) are out of scope for this repo
-  and are planned in `hermes_main` companion nodes. The mapping is
-  locked in [`docs/D4_PLAN.md`](docs/D4_PLAN.md) §4.4.
+  and live in `hermes_main` companion nodes published close to their
+  source, on the same `/intents` contract.
 - The adapter has not yet been validated under cross-network DDS
   conditions (Vulcanexus Discovery Server / Easy Mode); production
   deployments today are single-host.
@@ -547,7 +544,6 @@ JSON logs with correlation IDs via `structlog`:
 
 - **Maintainer:** Ampero S.r.l. — `tech@ampero.it`
 - **Issue tracker:** <https://github.com/Ampero-SRL/hermes-odoo-adapter/issues>
-- **ARISE D4 written report (draft):** [`docs/D4_REPORT_DRAFT.md`](docs/D4_REPORT_DRAFT.md)
 - **Third-party licenses:** [`THIRD_PARTY_LICENSES.md`](THIRD_PARTY_LICENSES.md)
 
 ## License
