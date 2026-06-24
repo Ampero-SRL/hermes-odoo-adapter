@@ -38,6 +38,14 @@ screenshots and don't depend on any rendering pipeline.
 | [`16_odoo_mo_reserved.png`](16_odoo_mo_reserved.png) | Odoo MO `WH/MO/00001` detail — Components tab, all five BOM components **Reserved** (`1.00` each), Component Status **Available**. The ERP-side reservation that the adapter mirrors into the `urn:ngsi-ld:Reservation:*` entity (cf. [`09_reservation_entity.log`](09_reservation_entity.log)). |
 | [`17_odoo_mo_shortage.png`](17_odoo_mo_shortage.png) | Odoo MO `WH/MO/00002` detail — Component Status **Not Available**, each component **reserved 99 of 105** required. The ERP-side shortage that the adapter mirrors into the `urn:ngsi-ld:Shortage:*` entity (cf. [`07_shortage_entity.log`](07_shortage_entity.log)). |
 | [`18_odoo_bom.png`](18_odoo_bom.png) | The `CTRL-PANEL-A1` Bill of Materials in Odoo — the five-component kit definition the adapter reads (`mrp.bom` → `mrp.bom.line`) to build the reservation/shortage line items. |
+| [`19_ros2_intent_echo.log`](19_ros2_intent_echo.log) | `ros2 topic echo /intents` — the **live ROS4HRI Intent message** on the wire: `intent: __intent_start_activity__`, `source: erp/odoo`, `modality: __modality_other__`, and the JSON `data` payload carrying the BOM. Captured from the running stack via a recompute. |
+| [`20_ros2_interface_node.log`](20_ros2_interface_node.log) | `ros2 interface show hri_actions_msgs/msg/Intent` (proves we publish the **unmodified upstream message**, with `START_ACTIVITY = __intent_start_activity__`) + `ros2 node info /hermes_adapter` (the node's full DDS graph: `/intents` publisher + the 5 warehouse/stock service servers). |
+| [`21_ngsi_subscription.log`](21_ngsi_subscription.log) | The NGSI-LD subscription the adapter registers on Orion-LD (`urn:ngsi-ld:Subscription:hermes-project`, `status: active`) — proves the event-driven Project → notification wiring. |
+| [`22_adapter_swagger_api.png`](22_adapter_swagger_api.png) | The adapter's auto-generated **OpenAPI / Swagger UI** (`/docs`) — the full documented REST surface grouped by tag: monitoring, webhooks, stock-operations, admin, debug + schemas. |
+| [`23_pytest_results.log`](23_pytest_results.log) | Unit test suite run — **112 passed, 18 skipped** (the skips are documented stale tests; see [`../../TESTING.md`](../../TESTING.md)). |
+| [`24_latency_metrics.png`](24_latency_metrics.png) | Per-operation latency derived from the Prometheus histograms — Odoo JSON-RPC, Orion NGSI-LD and HTTP API calls, all averaging **< 10 ms** on a single-host demo stack (D4 §3.3.9 performance evidence). |
+
+> Rendered PNG exports of the Mermaid architecture + sequence diagrams (for embedding in the written report) live in [`../diagrams/`](../diagrams/). The editable sources are [`../architecture_diagram.md`](../architecture_diagram.md) and [`../sequence_diagram.md`](../sequence_diagram.md), which render inline on GitHub.
 
 ## Naming conventions
 

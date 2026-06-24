@@ -1,0 +1,35 @@
+# NGSI-LD subscription registered by the adapter on Orion-LD
+# captured 2026-06-25 (commit 56130b1). Proves the event-driven wiring: the adapter
+# subscribes to Project entities and is notified on create/update.
+
+$ curl -s http://localhost:1026/ngsi-ld/v1/subscriptions | jq .
+[
+    {
+        "id": "urn:ngsi-ld:Subscription:hermes-project",
+        "type": "Subscription",
+        "description": "HERMES Project entity subscription",
+        "entities": [
+            {
+                "type": "Project"
+            }
+        ],
+        "status": "active",
+        "isActive": true,
+        "notification": {
+            "attributes": [
+                "code",
+                "station",
+                "status",
+                "productId",
+                "quantity"
+            ],
+            "format": "normalized",
+            "endpoint": {
+                "uri": "http://adapter:8080/orion/notifications",
+                "accept": "application/json"
+            },
+            "status": "ok"
+        },
+        "expiresAt": "2030-01-01T00:00:00.000Z"
+    }
+]

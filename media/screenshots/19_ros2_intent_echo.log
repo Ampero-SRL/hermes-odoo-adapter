@@ -1,0 +1,16 @@
+# ros2 topic echo /intents — live ROS4HRI Intent message
+# captured 2026-06-25 (commit 56130b1) from the running demo stack,
+# fired by POST /admin/recompute/demo-ctrl-1 (the Odoo MO ingestion path).
+#
+# Note the wire values: intent == __intent_start_activity__ (= Intent.START_ACTIVITY),
+# modality == __modality_other__ (= Intent.MODALITY_OTHER), source == erp/odoo.
+# This is the unmodified hri_actions_msgs/Intent envelope — domain data rides in the JSON 'data' field.
+
+$ ros2 topic echo /intents --no-daemon --full-length
+intent: __intent_start_activity__
+data: '{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"bom","id":"1"},"project_id":"demo-ctrl-1","bom":[{"sku":"Schneider Relay 24V","qty":4.0},{"sku":"ABB Circuit Breaker 10A","qty":2.0},{"sku":"DIN Rail Terminal","qty":8.0},{"sku":"Wago Connector","qty":6.0}]}'
+source: erp/odoo
+modality: __modality_other__
+priority: 0
+confidence: 1.0
+---

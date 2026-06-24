@@ -1,0 +1,6 @@
+# Unit test suite — captured 2026-06-25 (commit 56130b1)
+# poetry run pytest tests/unit
+
+ssssss..........................s...s....s.............................. [ 55%]
+...............................s.......s..ssss..s......ss.               [100%]
+112 passed, 18 skipped in 4.29s
