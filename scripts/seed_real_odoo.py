@@ -188,10 +188,13 @@ class RealOdooSeeder:
         
         uom_id = uom_units[0]["id"]
         
+        # Product set is kept identical to the in-tree mock
+        # (docker/odoo-mock/data/products.json) so the real-Odoo demo tells
+        # the same story as the mock-based demo logs / NGSI-LD entities.
         products_data = [
-            # Finished products
+            # Finished good
             {
-                "name": "Industrial Control Panel A1",
+                "name": "Control Panel A1",
                 "default_code": "CTRL-PANEL-A1",
                 "type": "product",
                 "categ_id": finished_goods_cat,
@@ -202,35 +205,10 @@ class RealOdooSeeder:
                 "list_price": 1500.0,
                 "standard_price": 950.0,
             },
+            # Components (BOM of Control Panel A1)
             {
-                "name": "Safety Control System B2",
-                "default_code": "SAFETY-SYS-B2",
-                "type": "product", 
-                "categ_id": finished_goods_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": True,
-                "purchase_ok": False,
-                "list_price": 2200.0,
-                "standard_price": 1400.0,
-            },
-            {
-                "name": "HMI Display Unit C3",
-                "default_code": "HMI-DISPLAY-C3",
-                "type": "product",
-                "categ_id": finished_goods_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": True,
-                "purchase_ok": False,
-                "list_price": 800.0,
-                "standard_price": 500.0,
-            },
-            
-            # Components
-            {
-                "name": "Safety Relay 24VDC",
-                "default_code": "EL-SAFETY-RELAY",
+                "name": "Schneider Relay 24V",
+                "default_code": "SCH-REL-24V",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
@@ -240,8 +218,8 @@ class RealOdooSeeder:
                 "standard_price": 85.0,
             },
             {
-                "name": "Interface Relay 24VDC",
-                "default_code": "EL-IFACE-RELAY",
+                "name": "ABB Circuit Breaker 10A",
+                "default_code": "ABB-MCB-10A",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
@@ -251,41 +229,8 @@ class RealOdooSeeder:
                 "standard_price": 62.0,
             },
             {
-                "name": "Contactor",
-                "default_code": "EL-CONTACTOR",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 74.0,
-            },
-            {
-                "name": "Auxiliary Contact Block",
-                "default_code": "EL-AUX-CONTACT",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 28.0,
-            },
-            {
-                "name": "Modular Fuse Carrier",
-                "default_code": "EL-FUSE-CARRIER",
-                "type": "product",
-                "categ_id": components_cat,
-                "uom_id": uom_id,
-                "uom_po_id": uom_id,
-                "sale_ok": False,
-                "purchase_ok": True,
-                "standard_price": 18.0,
-            },
-            {
-                "name": "Terminal Block Grey",
-                "default_code": "EL-TERMINAL-BLK",
+                "name": "DIN Rail Terminal",
+                "default_code": "DIN-TERM-2.5",
                 "type": "product",
                 "categ_id": components_cat,
                 "uom_id": uom_id,
@@ -293,7 +238,18 @@ class RealOdooSeeder:
                 "sale_ok": False,
                 "purchase_ok": True,
                 "standard_price": 6.0,
-            }
+            },
+            {
+                "name": "Wago Connector",
+                "default_code": "WAGO-221-412",
+                "type": "product",
+                "categ_id": components_cat,
+                "uom_id": uom_id,
+                "uom_po_id": uom_id,
+                "sale_ok": False,
+                "purchase_ok": True,
+                "standard_price": 4.0,
+            },
         ]
         
         sku_to_id = {}
@@ -330,25 +286,16 @@ class RealOdooSeeder:
         """Create Bills of Materials"""
         logger.info("Creating Bills of Materials")
         
-        # BOM definitions
+        # BOM matches the mock (docker/odoo-mock/data/boms.json): the
+        # Control Panel A1 kit and its four-component line quantities are the
+        # same ones the demo logs + NGSI-LD Reservation/Shortage entities use.
         bom_definitions = {
             "CTRL-PANEL-A1": [
-                ("EL-SAFETY-RELAY", 1.0),
-                ("EL-IFACE-RELAY", 1.0),
-                ("EL-CONTACTOR", 1.0),
-                ("EL-AUX-CONTACT", 1.0),
-                ("EL-FUSE-CARRIER", 1.0),
+                ("SCH-REL-24V", 4.0),
+                ("ABB-MCB-10A", 2.0),
+                ("DIN-TERM-2.5", 8.0),
+                ("WAGO-221-412", 6.0),
             ],
-            "SAFETY-SYS-B2": [
-                ("EL-SAFETY-RELAY", 2.0),
-                ("EL-CONTACTOR", 1.0),
-                ("EL-TERMINAL-BLK", 2.0),
-            ],
-            "HMI-DISPLAY-C3": [
-                ("EL-IFACE-RELAY", 1.0),
-                ("EL-FUSE-CARRIER", 1.0),
-                ("EL-TERMINAL-BLK", 2.0),
-            ]
         }
         
         for product_sku, components in bom_definitions.items():
@@ -432,57 +379,47 @@ class RealOdooSeeder:
             stock_location_id = stock_locations[0]["id"]
             logger.info(f"Using stock location: {stock_locations[0]['name']} (ID: {stock_location_id})")
             
-            # Stock quantities (SKU -> quantity)
+            # On-hand quantities mirror the mock (docker/odoo-mock/data/stock.json).
+            # Wago Connector is deliberately stocked below the BOM requirement
+            # (need 6 per panel, only 2 on hand) so a single Manufacturing Order
+            # reproduces the demo's WAGO-221-412 shortage exactly.
             stock_quantities = {
-                "EL-SAFETY-RELAY": 20.0,
-                "EL-IFACE-RELAY": 20.0,
-                "EL-CONTACTOR": 20.0,
-                "EL-AUX-CONTACT": 20.0,
-                "EL-FUSE-CARRIER": 20.0,
-                "EL-TERMINAL-BLK": 40.0,
+                "SCH-REL-24V": 10.0,
+                "ABB-MCB-10A": 15.0,
+                "DIN-TERM-2.5": 50.0,
+                "WAGO-221-412": 2.0,
             }
-            
-            inventory_id = await self.client.create(
-                "stock.inventory",
-                {
-                    "name": "Initial HERMES stock seed",
-                    "location_ids": [(6, 0, [stock_location_id])],
-                },
-            )
-            lines_created = 0
 
+            # Odoo 16 removed `stock.inventory`; on-hand is set by writing
+            # `inventory_quantity` on a stock.quant and applying it.
+            applied = 0
             for sku, quantity in stock_quantities.items():
                 if sku not in sku_to_id:
                     logger.warning(f"SKU {sku} not found, skipping stock adjustment")
                     continue
-                
                 product_id = sku_to_id[sku]
-                
                 try:
-                    product_data = await self.client.read(
-                        "product.product", product_id, ["uom_id"]
+                    # `inventory_mode=True` is required for Odoo 16 to accept a
+                    # write to `inventory_quantity` on a freshly-created quant.
+                    quant_id = await self.client.call(
+                        "stock.quant",
+                        "create",
+                        {
+                            "product_id": product_id,
+                            "location_id": stock_location_id,
+                            "inventory_quantity": quantity,
+                        },
+                        context={"inventory_mode": True},
                     )
-                    uom_id = product_data[0]["uom_id"][0]
-
-                    line_vals = {
-                        "inventory_id": inventory_id,
-                        "product_id": product_id,
-                        "location_id": stock_location_id,
-                        "product_qty": quantity,
-                        "product_uom_id": uom_id,
-                    }
-                    await self.client.create("stock.inventory.line", line_vals)
-                    lines_created += 1
-                    logger.info(f"Prepared stock line for {sku}: {quantity} units")
+                    await self.client.call(
+                        "stock.quant", "action_apply_inventory", [quant_id]
+                    )
+                    applied += 1
+                    logger.info(f"Set on-hand for {sku}: {quantity} units")
                 except Exception as e:
-                    logger.error(f"Error preparing stock for {sku}: {e}")
+                    logger.error(f"Error setting stock for {sku}: {e}")
 
-            if lines_created:
-                await self.client.call("stock.inventory", "action_start", [[inventory_id]])
-                await self.client.call("stock.inventory", "action_validate", [[inventory_id]])
-                logger.info("Stock quantity setup completed")
-            else:
-                logger.warning("No stock lines were created; skipping inventory validation")
+            logger.info(f"Stock quantity setup completed ({applied} products)")
         except Exception as e:
             logger.warning(
                 "Stock quantity setup skipped due to Odoo stock API error",
