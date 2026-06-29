@@ -17,13 +17,28 @@ same recording.
 > deliverables."* The cell-running video isn't re-recorded for D4;
 > it's reused.
 
-## Optional supplement: short open-module demo clip
+## Short open-module demo clip — shipped
 
-A ~90 second screen-recording of the in-repo **mock-only** demo flow
-that complements the live-cell TRL6-7 video. Aim: a reviewer can
-follow `docs/03_installation_and_hello_world.md` →
-`docs/04_basic_demo_how_to_use.md` without watching the long-form
+A recorded run of the in-repo **mock-only** demo flow that complements
+the live-cell TRL6-7 video. A reviewer can watch the full Quick-Start
+(`docs/03_installation_and_hello_world.md` →
+`docs/04_basic_demo_how_to_use.md`) without watching the long-form
 demonstrator video first.
+
+![HERMES Odoo Adapter — demo flow](demo.gif)
+
+- **`demo.gif`** — the rendered clip (~14 s). Renders inline on GitHub
+  above, and can be embedded directly in the written report / `.docx`.
+- **`demo.cast`** — the source [asciinema](https://asciinema.org)
+  recording. Play locally with `asciinema play media/demo.cast`, or
+  `asciinema upload media/demo.cast` to publish a clickable
+  asciinema.org URL for an online/PDF report.
+
+The GIF was produced from the cast with
+[`agg`](https://github.com/asciinema/agg):
+`agg --speed 2 --idle-time-limit 1 --theme monokai media/demo.cast media/demo.gif`.
+
+### What the clip shows
 
 ### Acceptance criteria for the short clip
 

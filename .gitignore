@@ -91,7 +91,7 @@ test-results/
 # `asciinema rec -c 'bash scripts/demo_walkthrough.sh' media/demo.cast`
 # against a fresh demo stack.
 !media/demo.cast
-media/demo.gif
+# media/demo.gif is the rendered demo clip (shipped, embeds in README + report)
 media/demo.mp4
 
 # Rendered submission artefacts (the written report is delivered to ARISE
