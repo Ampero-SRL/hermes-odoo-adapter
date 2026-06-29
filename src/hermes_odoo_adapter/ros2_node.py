@@ -281,6 +281,11 @@ class HermesAdapterNode(Node):
 
         with self._intent_pub_lock:
             self._intent_pub.publish(msg)
+        try:
+            from .utils.metrics import metrics as _metrics
+            _metrics.record_intent_published(intent=msg.intent, source=source)
+        except Exception:  # metrics are best-effort, never block the publish
+            pass
         self.get_logger().info(
             f"Published ROS4HRI Intent: {msg.intent} "
             f"bom={bom_id} project={project_id} source={source} "

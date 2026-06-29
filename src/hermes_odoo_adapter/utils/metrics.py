@@ -80,9 +80,16 @@ reservations_created_total = Counter(
 )
 
 shortages_created_total = Counter(
-    "hermes_odoo_adapter_shortages_created_total", 
+    "hermes_odoo_adapter_shortages_created_total",
     "Total shortages created",
     ["status"],
+    registry=REGISTRY
+)
+
+intents_published_total = Counter(
+    "hermes_odoo_adapter_intents_published_total",
+    "Total ROS4HRI Intents published on the /intents topic",
+    ["intent", "source"],
     registry=REGISTRY
 )
 
@@ -204,6 +211,10 @@ class MetricsCollector:
     def record_shortage_created(self, status: str = "created"):
         """Record a shortage creation"""
         shortages_created_total.labels(status=status).inc()
+
+    def record_intent_published(self, intent: str, source: str = "erp/odoo"):
+        """Record a ROS4HRI Intent published on /intents"""
+        intents_published_total.labels(intent=intent, source=source).inc()
     
     def update_active_projects(self, count: int):
         """Update active projects gauge"""

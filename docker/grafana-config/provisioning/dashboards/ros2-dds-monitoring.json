@@ -23,412 +23,432 @@
   "liveNow": false,
   "panels": [
     {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 0,
-        "y": 0
-      },
       "id": 1,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "lastNotNull", "max"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "fastdds_latency",
-          "legendFormat": "{{src}} → {{dst}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "ROS2 Message Latency (Fast-DDS)",
-      "type": "timeseries"
-    },
-    {
+      "type": "stat",
+      "title": "ROS4HRI Intents published (total)",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "red",
-                "value": 80
-              }
-            ]
-          },
-          "unit": "Bps"
-        },
-        "overrides": []
-      },
       "gridPos": {
-        "h": 8,
-        "w": 12,
-        "x": 12,
-        "y": 0
-      },
-      "id": 2,
-      "options": {
-        "legend": {
-          "calcs": ["mean", "lastNotNull", "max"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "publication_throughput",
-          "legendFormat": "{{entity}}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "ROS2 Publication Throughput",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": 10
-              },
-              {
-                "color": "red",
-                "value": 50
-              }
-            ]
-          },
-          "unit": "ms"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 8,
+        "h": 6,
         "w": 6,
         "x": 0,
-        "y": 8
-      },
-      "id": 3,
-      "options": {
-        "orientation": "auto",
-        "reduceOptions": {
-          "values": false,
-          "calcs": ["lastNotNull"],
-          "fields": ""
-        },
-        "showThresholdLabels": false,
-        "showThresholdMarkers": true
-      },
-      "pluginVersion": "9.5.3",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "editorMode": "code",
-          "expr": "avg(fastdds_latency)",
-          "legendFormat": "Average Latency",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Average DDS Latency",
-      "type": "gauge"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
+        "y": 0
       },
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
           "color": {
             "mode": "thresholds"
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "red",
                 "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
               }
             ]
-          },
-          "unit": "short"
+          }
         },
         "overrides": []
       },
-      "gridPos": {
-        "h": 8,
-        "w": 6,
-        "x": 6,
-        "y": 8
-      },
-      "id": 4,
       "options": {
         "colorMode": "value",
         "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "auto",
         "reduceOptions": {
-          "values": false,
-          "calcs": ["lastNotNull"],
-          "fields": ""
+          "calcs": [
+            "lastNotNull"
+          ]
         },
         "textMode": "auto"
       },
-      "pluginVersion": "9.5.3",
       "targets": [
         {
+          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "editorMode": "code",
-          "expr": "count(up{job=\"fastdds-statistics\"})",
-          "legendFormat": "Active Endpoints",
-          "range": true,
-          "refId": "A"
+          "expr": "sum(hermes_odoo_adapter_intents_published_total)"
         }
-      ],
-      "title": "Active ROS2 Nodes",
-      "type": "stat"
+      ]
     },
     {
+      "id": 2,
+      "type": "stat",
+      "title": "Adapter ROS 2 node \u2014 up",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Network traffic for ROS2/DDS communication",
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
       "fieldConfig": {
         "defaults": {
+          "unit": "short",
           "color": {
-            "mode": "palette-classic"
+            "mode": "thresholds"
           },
-          "custom": {
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 10,
-            "gradientMode": "none",
-            "hideFrom": {
-              "tooltip": false,
-              "viz": false,
-              "legend": false
-            },
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "auto",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
+                "color": "red",
+                "value": null
+              },
+              {
                 "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=\"hermes-adapter\"}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "NGSI-LD Reservations created",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
                 "value": null
               }
             ]
-          },
-          "unit": "Bps"
+          }
         },
         "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(hermes_odoo_adapter_reservations_created_total)"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "NGSI-LD Shortages created",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "orange",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(hermes_odoo_adapter_shortages_created_total)"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "ROS4HRI Intents published on /intents (cumulative)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(hermes_odoo_adapter_intents_published_total)",
+          "legendFormat": "intents published"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Reservations vs Shortages created (cumulative)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 6
       },
-      "id": 5,
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": []
+      },
       "options": {
         "legend": {
-          "calcs": ["mean", "lastNotNull"],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
+          "displayMode": "list",
+          "placement": "bottom"
         },
         "tooltip": {
-          "mode": "single",
-          "sort": "none"
+          "mode": "multi"
         }
       },
       "targets": [
         {
+          "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "editorMode": "code",
-          "expr": "subscription_throughput",
-          "legendFormat": "{{entity}}",
-          "range": true,
-          "refId": "A"
+          "expr": "sum(hermes_odoo_adapter_reservations_created_total)",
+          "legendFormat": "reservations"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(hermes_odoo_adapter_shortages_created_total)",
+          "legendFormat": "shortages"
         }
-      ],
-      "title": "ROS2 Subscription Throughput",
-      "type": "timeseries"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Orion-LD NGSI-LD operation rate (ops/s)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 14
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(hermes_odoo_adapter_orion_operations_total[5m]))",
+          "legendFormat": "orion ops/s"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Odoo JSON-RPC request rate (req/s)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 14
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum(rate(hermes_odoo_adapter_odoo_requests_total[5m]))",
+          "legendFormat": "odoo req/s"
+        }
+      ]
     }
   ],
   "refresh": "5s",
   "schemaVersion": 38,
   "style": "dark",
-  "tags": ["ros2", "vulcanexus", "fastdds", "monitoring"],
+  "tags": [
+    "ros2",
+    "vulcanexus",
+    "fastdds",
+    "monitoring"
+  ],
   "templating": {
     "list": []
   },
@@ -438,8 +458,9 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "ROS2/Vulcanexus - DDS Monitoring",
+  "title": "HERMES Adapter \u2014 ROS 2 / ROS4HRI Activity",
   "uid": "ros2-dds-monitoring",
   "version": 0,
-  "weekStart": ""
+  "weekStart": "",
+  "description": "Live ROS 2 / ROS4HRI + NGSI-LD activity of the HERMES Odoo Adapter, scraped from its /metrics endpoint. (Fast-DDS middleware statistics are not shown: the Fast-DDS statistics backend is incompatible with Vulcanexus Humble's Fast-RTPS 2.5.0 \u2014 see docs.)"
 }
