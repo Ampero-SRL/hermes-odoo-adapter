@@ -12,6 +12,15 @@ It says, concretely:
 2. What the open module reproduces vs. what stays cell-specific.
 3. What evidence supports the integration claim.
 
+## System overview
+
+High-level view of the whole system — the ROS 2 nodes, the key topics /
+services, the middleware layers (ROS 2 / Fast-DDS, NGSI-LD, JSON-RPC,
+HOST-COM), the operator interaction flow, and the module boundaries
+(this adapter highlighted):
+
+![HERMES system architecture](../media/diagrams/system_overview.png)
+
 ## The cell at a glance
 
 The full cell is a custom **electrical-panel assembly cell**
