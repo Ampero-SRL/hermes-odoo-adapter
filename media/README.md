@@ -4,7 +4,6 @@ Visual artefacts: diagrams, the recorded demo, and captured evidence.
 
 | File | Contents |
 |---|---|
-| [`diagrams/system_overview.png`](diagrams/system_overview.png) | One-page high-level system architecture: ROS 2 nodes, key topics, middleware layers, operator flow, and module boundaries (this adapter highlighted). |
 | [`architecture_diagram.md`](architecture_diagram.md) | Mermaid system-context diagram + a pointer to the ASCII fallback in `../docs/01_arise_context.md`. |
 | [`sequence_diagram.md`](sequence_diagram.md) | Three Mermaid sequence diagrams (Project → Shortage, top-up → Reservation, Mission Controller → ConsumeStock). |
 | [`video_link.md`](video_link.md) | Notes on the recorded demo (`demo.gif`) and how to reproduce it. |
