@@ -5,8 +5,8 @@ Three flows the adapter mediates. Mermaid renders inline on GitHub.
 ## Flow 1 — Project → Shortage (default mock data)
 
 This is the path the in-repo demo exercises by default (see
-[`../docs/04_basic_demo_how_to_use.md`](../docs/04_basic_demo_how_to_use.md)
-Stage 1). The mock seed is intentionally short on `WAGO-221-412` so the
+[`../docs/04_basic_demo_how_to_use.md`](../docs/04_basic_demo_how_to_use.md)).
+The mock seed is intentionally short on `WAGO-221-412` so the
 adapter takes the shortage branch.
 
 ```mermaid
@@ -53,8 +53,7 @@ sequenceDiagram
 ## Flow 3 — Mission Controller pick → ConsumeStock
 
 This is the steady-state DDS-side conversation the adapter is built for
-(see [`../docs/04_basic_demo_how_to_use.md`](../docs/04_basic_demo_how_to_use.md)
-Stages 2-3).
+(see [`../docs/04_basic_demo_how_to_use.md`](../docs/04_basic_demo_how_to_use.md)).
 
 ```mermaid
 sequenceDiagram
@@ -80,7 +79,7 @@ sequenceDiagram
     Adapter-->>MC: success, remaining=11.0
 ```
 
-## Flow 4 — ROS4HRI Intent publish (Sprint 0.4)
+## Flow 4 — ROS4HRI Intent publish
 
 The adapter fires an `hri_actions_msgs/Intent` on the canonical `/intents`
 topic for every Odoo MO event the planner ingests. The Intent fires

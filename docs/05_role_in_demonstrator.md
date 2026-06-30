@@ -1,20 +1,20 @@
-# 05 — Role in the HERMES TRL6-7 demonstrator
+# 05 — Role in a robotics + ERP cell
 
-> **Audience:** ARISE reviewer interested in the validation context;
-> integrator weighing whether the adapter fits a similar deployment.
+> **Audience:** an integrator weighing whether the adapter fits a
+> similar deployment.
 > **Reading time:** 5 minutes.
 
 This page connects the **open shareable module** (the HERMES Odoo
-Adapter) to the **full TRL6-7 demonstrator** validated during Stage 3.
+Adapter) to the **full robotics assembly cell** it was built for.
 It says, concretely:
 
-1. Where the adapter sits in the demonstrator.
-2. What the open module reproduces vs. what stays demonstrator-specific.
-3. What evidence supports the validation claim.
+1. Where the adapter sits in the cell.
+2. What the open module reproduces vs. what stays cell-specific.
+3. What evidence supports the integration claim.
 
-## Demonstrator at a glance
+## The cell at a glance
 
-The HERMES demonstrator is a custom **electrical-panel assembly cell**
+The full cell is a custom **electrical-panel assembly cell**
 deployed in the Ampero / Olorin lab. The cell takes a customer order
 from Odoo, retrieves the right components from a Hänel vertical lift,
 sequences cobot picks + AGV deliveries, and guides the operator through
@@ -79,16 +79,16 @@ End-to-end run (single project, one BOM line):
 10. Repeat 4-9 for the next BOM line.
 11. After all picks: `/hermes/stock/produce` + `Project.status = completed`.
 
-## Open module ↔ demonstrator mapping
+## Open module ↔ cell mapping
 
-| Demonstrator component | Reusable module extraction | What stays demonstrator-specific |
+| Cell component | Reusable module extraction | What stays cell-specific |
 |---|---|---|
 | **Odoo integration** | `OdooClient` + JSON-RPC patterns + the BOM-resolution worker | The Odoo addon and customer BOM data |
 | **Orion-LD digital twin** | `OrionClient` + the four entity schemas + the `@context` + subscription handler | Operator dashboard configuration |
 | **Hänel integration** | `WarehouseClient` ABC + `HanelHostComClient` (open; raw TCP HOST-COM telegrams, default) + `HanelSoapClient` (open; legacy HOST-WEB SOAP 1.1) + the `NullWarehouseClient` mock | Live Hänel endpoint + credentials |
 | **ROS 2 / DDS face** | `HermesAdapterNode` — 5 services + 4 publishers (`/hermes/inventory_updates`, `/hermes/warehouse/tray_state`, `/diagnostics`, `/intents`) + 1 subscriber | The Mission Controller that consumes them (lives in `hermes_main/`) |
 | **NGSI-LD ↔ DDS bridging** | In-process bridging in `ros2_node.py` ↔ `orion_client.py`; canonical mapping in [`config/README.md`](../config/README.md) | — |
-| **ROS4HRI Intent publishing** | **Implemented in Sprint 0.4** — planner-derived MO intent published from the adapter on `/intents`. Operator-side intents stay in `hermes_main/` companions. | The HoloLens AR-button → Intent companion node still lives in `hermes_main/hololens_api/` (out of this repo's scope). |
+| **ROS4HRI Intent publishing** | Planner-derived MO intent published from the adapter on `/intents`. Operator-side intents stay in `hermes_main/` companions. | The HoloLens AR-button → Intent companion node still lives in `hermes_main/hololens_api/` (out of this repo's scope). |
 | Mission Controller / MoveIt 2 / cuMotion | Not part of the open module | Internal to `hermes_main/` |
 | Vision detection (Jetson) | Not part of the open module | Internal to `hermes_asrs_station/` |
 | HoloLens AR app | Not part of the open module | `ARISE-AR-APP/` + `panelserver/` |
@@ -103,37 +103,34 @@ reusing them.
 ## What the in-repo demo reproduces
 
 The [`04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md) demo
-exercises the integration backbone with the same code as the
-demonstrator, but:
+exercises the integration backbone with the same code as the full
+cell, but:
 
 - The Hänel vertical lift is replaced by `NullWarehouseClient`.
 - The Odoo ERP is replaced by `docker/odoo-mock/`.
 - The Mission Controller is replaced by manual `ros2 service call`s.
 - The HoloLens AR app is replaced by manual `curl` against Orion-LD.
 
-This is the **TRL ≈ 5** level the D4 template targets: a reproducible
-research artefact, not the full TRL6-7 industrial validation.
+This is a reproducible research artefact, not the full industrial cell.
 
-## Validation evidence
+## Evidence
 
 | Evidence | Status | Link |
 |---|---|---|
-| TRL6-7 demonstrator video | Reused from the D3 / Milestone-3 deliverable (per D4 §2 "incremental contribution") | [`../media/video_link.md`](../media/video_link.md) |
+| Recorded demo | ✅ [`../media/demo.gif`](../media/demo.gif) (asciinema source at [`../media/demo.cast`](../media/demo.cast)) | — |
 | Architecture diagram | ✅ [`../media/architecture_diagram.md`](../media/architecture_diagram.md) (Mermaid, renders inline on GitHub) | — |
 | Sequence diagrams | ✅ [`../media/sequence_diagram.md`](../media/sequence_diagram.md) — three Mermaid sequence diagrams covering Project → Shortage, top-up → Reservation, and Mission Controller → ConsumeStock | — |
-| Execution logs | ✅ [`../media/screenshots/01-09_*.log`](../media/screenshots/) — captured from a fresh clone Sprint 1.5 run | The Sprint 0.4 Intent publishing is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log) |
+| Execution logs | ✅ [`../media/screenshots/01-09_*.log`](../media/screenshots/) — captured from a fresh-clone reproducibility run | The Intent publishing is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log) |
 | Latency metrics | ✅ Captured at [`../media/screenshots/08_metrics.log`](../media/screenshots/08_metrics.log) (Prometheus output) + [`../media/screenshots/11_grafana_system_health.png`](../media/screenshots/11_grafana_system_health.png) (Grafana live render) | — |
 
 ## Limitations
-
-Honestly stated, per D4 §3.3.10:
 
 - The open module exercises the integration path; **it does not include
   the cobot motion logic or the vision detection** — those are necessary
   for the cell to physically pick a component but are independent
   reusable modules outside this one.
 - The Hänel HOST-COM client is tested only against the MP 12N controller
-  in the demonstrator. Other Hänel models or other vendors require a
+  in the assembly cell. Other Hänel models or other vendors require a
   fresh `WarehouseClient` implementation.
 - The trigger this module ships is the Odoo manufacturing-order →
   ROS4HRI Intent path; a HoloLens AR-button → Intent trigger is a

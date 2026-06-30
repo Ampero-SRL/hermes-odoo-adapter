@@ -1,6 +1,6 @@
 # 04 — Basic demo & how to use
 
-> **Audience:** ARISE reviewer / integrator that completed
+> **Audience:** an integrator that completed
 > [`03_installation_and_hello_world.md`](03_installation_and_hello_world.md)
 > and wants to see the adapter drive an end-to-end pipeline.
 > **Reading time:** 10 minutes (commands), 20 minutes (with explanation).
@@ -20,7 +20,7 @@ Odoo (mock) ─► adapter ─► Orion-LD ─► (operator/Mission Controller)
 No real hardware involved — the `NullWarehouseClient` plays the role of
 the Hänel ASRS and the `docker/odoo-mock/` container plays Odoo.
 
-## Stage 0 — set the scene
+## Step 0 — set the scene
 
 | Container | Role | URL |
 |---|---|---|
@@ -42,7 +42,7 @@ bash examples/curl/02_readyz.sh
 #                "ros2":"Node 'hermes_adapter' running"}}
 ```
 
-## Stage 1 — operator (or planner) places a manufacturing order
+## Step 1 — operator (or planner) places a manufacturing order
 
 In the real cell this happens in two ways:
 
@@ -132,7 +132,7 @@ the Odoo client is reachable, and **both** branches of the
 BOM-resolution worker (Reservation when stock is sufficient, Shortage
 when it isn't) are functional.
 
-## Stage 2 — Mission Controller requests a warehouse pick
+## Step 2 — Mission Controller requests a warehouse pick
 
 A robotics Mission Controller now needs the first SKU from the BOM. It
 calls the ROS 2 service exposed by the adapter:
@@ -180,7 +180,7 @@ docker compose ... exec adapter bash -lc '
 `HanelHostComClient` raw TCP — or the legacy `HanelSoapClient` — in
 production) drives the right state transitions.
 
-## Stage 3 — cobot picks → adapter decrements stock
+## Step 3 — cobot picks → adapter decrements stock
 
 After the (mock) cobot picks the component, the Mission Controller calls
 the adapter's stock-decrement service. The adapter:
@@ -231,7 +231,7 @@ docker compose ... exec adapter bash -lc '
 **What this proves.** The adapter keeps Odoo, Orion-LD, and the DDS
 inventory event stream consistent end-to-end.
 
-## Stage 4 — assembly complete → adapter publishes the produced stock
+## Step 4 — assembly complete → adapter publishes the produced stock
 
 ```bash
 docker compose ... exec adapter bash -lc '
@@ -265,16 +265,16 @@ exercised through the adapter.
 
 | Adapter surface | Exercised in this demo? | Where to see |
 |---|---|---|
-| `POST /orion/notifications` | Yes — Stage 1 | adapter logs |
-| Odoo JSON-RPC client | Yes — Stage 1, 3, 4 | adapter logs (BOM read + stock moves) |
+| `POST /orion/notifications` | Yes — Step 1 | adapter logs |
+| Odoo JSON-RPC client | Yes — Step 1, 3, 4 | adapter logs (BOM read + stock moves) |
 | `Project` / `Reservation` / `Shortage` / `InventoryItem` entities | Yes | `curl examples/04_list_entities.sh <Type>` |
-| ROS 2 `WarehousePick` / `WarehousePickStatus` / `WarehousePickCancel` | Yes — Stage 2 | `examples/ros2/0[1-3]_*.sh` |
-| ROS 2 `ConsumeStock` / `ProduceStock` | Yes — Stage 3 + 4 | `examples/ros2/0[4-5]_*.sh` |
-| Topic `/hermes/inventory_updates` | Yes — Stage 3 | `ros2 topic echo` |
-| Topic `/hermes/warehouse/tray_state` | Yes — Stage 2 | `ros2 topic echo` |
+| ROS 2 `WarehousePick` / `WarehousePickStatus` / `WarehousePickCancel` | Yes — Step 2 | `examples/ros2/0[1-3]_*.sh` |
+| ROS 2 `ConsumeStock` / `ProduceStock` | Yes — Step 3 + 4 | `examples/ros2/0[4-5]_*.sh` |
+| Topic `/hermes/inventory_updates` | Yes — Step 3 | `ros2 topic echo` |
+| Topic `/hermes/warehouse/tray_state` | Yes — Step 2 | `ros2 topic echo` |
 | Topic `/diagnostics` | (continuously) | `ros2 topic echo /diagnostics` |
 | Topic `/hermes/mission_state` (subscriber) | **Not exercised** in this demo — needs an upstream Mission Controller publishing it. | n/a |
-| ROS4HRI `Intent` publish | Yes — Stage 1 fires it twice (once per recompute). Tail the adapter logs and look for `Published ROS4HRI Intent: START_ACTIVITY mo=... source=erp/odoo`. The captured proof is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log). | adapter logs |
+| ROS4HRI `Intent` publish | Yes — Step 1 fires it twice (once per recompute). Tail the adapter logs and look for `Published ROS4HRI Intent: START_ACTIVITY mo=... source=erp/odoo`. The captured proof is at [`../media/screenshots/05_intent_published.log`](../media/screenshots/05_intent_published.log). | adapter logs |
 
 ## Troubleshooting
 
@@ -282,7 +282,7 @@ exercised through the adapter.
 |---|---|---|
 | `LdContextNotAvailable: http://localhost:8080/context.jsonld` from Orion when creating a Project | The `@context` URL points at the host loopback, which Orion can't reach from inside the compose network. | Use `http://adapter:8080/context.jsonld` (the shipped `examples/payloads/*.json` already do). |
 | Second `POST /admin/recompute/<id>` returns "queued" but the worker never fires (no logs, no new Reservation) | The idempotency cache caught a `(project_id, data)` hash repeat. | `curl -X DELETE http://localhost:8080/admin/idempotency/<project_id>` and re-issue the recompute. The cache exists to avoid duplicate work when Orion notifies twice for the same Project. |
-| `Failed to setup project subscription` once at startup | First `POST /ngsi-ld/v1/subscriptions` reached Orion before it had finished initialising. | Cosmetic — the adapter still runs, and the demo `04_basic_demo_how_to_use.md` flow doesn't depend on the subscription (it triggers the worker via `/admin/recompute`). Fixed at the source in newer commits (Orion's 201-No-Content is no longer treated as failure). |
+| `Failed to setup project subscription` once at startup | First `POST /ngsi-ld/v1/subscriptions` reached Orion before it had finished initialising. | Cosmetic — the adapter still runs, and this demo flow doesn't depend on the subscription (it triggers the worker via `/admin/recompute`). Fixed at the source in newer commits (Orion's 201-No-Content is no longer treated as failure). |
 | `Odoo API error: Unknown method: read` from the worker | Stale `odoo-mock` image from before the `read()` method was added. | Rebuild: `docker compose -f docker/docker-compose.demo.yml build odoo-mock`. |
 | `ros2 topic echo /intents` exits with `RuntimeError: !rclpy.ok()` | The host's `ros2` CLI got a `rclpy` shutdown race when the compose container restarted. | Use the adapter's own logs as the canonical `/intents` evidence (the publisher logs every Intent). The actual `ros2 topic echo --once /intents` does work from a fresh shell against a live container. |
 

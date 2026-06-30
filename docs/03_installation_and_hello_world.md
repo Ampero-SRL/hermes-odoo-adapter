@@ -1,7 +1,6 @@
 # 03 — Installation & Hello World
 
-> **Audience:** ARISE reviewer or third-party integrator running the
-> adapter for the first time.
+> **Audience:** anyone running the adapter for the first time.
 > **Reading time:** 5 minutes — installation + first response.
 > **Pre-requisites:** Docker, Docker Compose, `curl`. **No ROS 2 / Hänel /
 > Odoo installation on the host** is required for this page.
@@ -17,11 +16,11 @@ after this.
 |---|---|---|---|
 | Operating system | Linux (Ubuntu 22.04 host tested) | Ubuntu 22.04 | this page |
 | ROS 2 / Vulcanexus | inside the container; **not** on the host | inside the container | `Dockerfile`, `docker/docker-compose.demo.yml` |
-| Python on host | not required | not required | `pyproject.toml` (only needed for local-dev, see §"Local dev" below) |
+| Python on host | not required | not required | `pyproject.toml` (only needed for local-dev, see "Local dev" below) |
 | Docker | ≥ 24 (Compose v2) | ≥ 24 | this page |
 | FIWARE / Orion-LD | brought up by the demo compose | brought up by the demo compose | `docker/docker-compose.demo.yml` |
 | Odoo | mock (`docker/odoo-mock/`) | mock or real | `docker/odoo-mock/` |
-| Hardware | none | none for the in-repo demo; real Hänel + JAKA for the TRL6-7 demonstrator only | `docker/odoo-mock/`, `WAREHOUSE_BACKEND=null` |
+| Hardware | none | none for the in-repo demo; real Hänel + JAKA only for a hardware deployment | `docker/odoo-mock/`, `WAREHOUSE_BACKEND=null` |
 
 The "Hello World" path uses **only mocks**. No real cobot, no real
 warehouse, no real ERP.
@@ -34,8 +33,8 @@ warehouse, no real ERP.
 > end-to-end Odoo → Orion → ROS 2 → mock-cobot flow is the **basic
 > demo** in [`04_basic_demo_how_to_use.md`](04_basic_demo_how_to_use.md).
 
-The whole purpose of this section: a fresh reviewer clones the repo, runs
-these commands, and sees a known-good response in under five minutes.
+The whole purpose of this section: clone the repo, run these commands,
+and see a known-good response in under five minutes.
 
 ```bash
 # 1) Clone the public repo.
@@ -145,7 +144,7 @@ python -m hermes_odoo_adapter
 ```
 
 This path is for adapter-internal development; the Hello World above is
-the canonical entrypoint for reviewers and downstream users.
+the canonical entrypoint for downstream users.
 
 ## What next?
 

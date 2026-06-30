@@ -3,12 +3,14 @@
 This `hermes_msgs` package is **vendored** into the adapter so the repo
 builds from a clean `git clone` without the rest of the HERMES monorepo.
 
+Developed within the ARISE robotics innovation programme.
+
 ## Upstream
 
 - Source: `hermes_main/ros2_ws/src/hermes_msgs` in the private HERMES
   integration repo (`Ampero-SRL/hermes_main`).
 - Pinned to commit: `9987978de0c25cf8c1106b2db96b20a573edf9cf` (snapshot
-  taken 2026-05-27 for D4 submission).
+  taken 2026-05-27).
 
 ## What the adapter actually uses
 
@@ -27,9 +29,7 @@ snapshot for build parity with the upstream package.
 
 ## Maintenance
 
-This snapshot is frozen for the D4 submission and must remain stable
-until 2033-06-30 (six years after ARISE ends, per the D4 §3.2.1
-stability requirement).
+This snapshot is intended to remain stable and maintained long-term.
 
 If the upstream interface evolves, refresh by:
 

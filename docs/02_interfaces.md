@@ -1,7 +1,7 @@
 # 02 — Interfaces
 
 > **Audience:** integrators wiring the adapter into a robotics cell or a
-> FIWARE deployment. ARISE D4 §3.2.6 evidence page.
+> FIWARE deployment.
 > **Reading time:** 15 minutes.
 
 The adapter exposes four interfaces:
@@ -50,14 +50,14 @@ package (see `VENDORED_FROM.md` there).
 | `/hermes/warehouse/tray_state` | `std_msgs/Int16` | **Publish** | latched: `KEEP_LAST/1` + `TRANSIENT_LOCAL` (reliability inherited from default) | Current tray id at the Hänel pickup point; latched so late joiners see the last value. |
 | `/diagnostics` | `diagnostic_msgs/DiagnosticArray` | **Publish** | default | Per-subsystem health (warehouse / Odoo / Orion / ROS 2). Published once per second by a timer. |
 | `/hermes/mission_state` | `std_msgs/String` (JSON payload) | **Subscribe** | default | Mission-controller state stream — the adapter parses the JSON and applies the relevant NGSI-LD patches. |
-| `/intents` | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see §4 below. Fired by `ros2_node.HermesAdapterNode.publish_planner_intent()` whenever `ProjectSyncWorker._process_project_request` ingests an Odoo MO. Topic name `/intents` follows the [ROS4HRI tutorial convention](https://ros4hri.github.io/ros4hri-tutorials/interactive-social-robots/). |
+| `/intents` | `hri_actions_msgs/Intent` | **Publish** | default | ROS4HRI alignment — see the ROS4HRI Intent section below. Fired by `ros2_node.HermesAdapterNode.publish_planner_intent()` whenever `ProjectSyncWorker._process_project_request` ingests an Odoo MO. Topic name `/intents` follows the [ROS4HRI tutorial convention](https://ros4hri.github.io/ros4hri-tutorials/interactive-social-robots/). |
 
 ### Parameters
 
 The adapter does not currently declare ROS 2 parameters; all configuration
 flows through environment variables (see `.env.example` and `settings.py`).
 Adding `rclpy` parameters for the most-tuned settings (QoS overrides, the
-ROS4HRI intent topic name) is on the Sprint 1 backlog.
+ROS4HRI intent topic name) is a documented future-work item.
 
 ### Launch
 
@@ -210,8 +210,6 @@ for the **admin / debug** surface during integration.
 
 ## 4. ROS4HRI / ROS4RI Intent
 
-### Position: **Used** — implemented in Sprint 0.4
-
 The adapter publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg)
 on the canonical ROS4HRI **`/intents`** topic for the human-originated
 inputs **it directly ingests** — which in this repo means **only the
@@ -260,7 +258,7 @@ Only the **Odoo MO intent** is published from this repo, on **`/intents`**
 
 | Adapter event | `Intent.intent` | `Intent.source` | `Intent.modality` | `Intent.data` (JSON) | Mapping kind |
 |---|---|---|---|---|---|
-| Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"bom","id":"<bom_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` — `object.id` is the BOM id read from Odoo (`mrp.bom.id`). For deployments that carry an explicit MO id, pass it through `bom_id` instead. | **Used — standard constant + free-form source + JSON payload (codex-validated)** |
+| Odoo planner places a manufacturing order (adapter ingests the MO via the NGSI-LD `Project` subscription) | `START_ACTIVITY` (standard constant — "ERP planner requests work to begin") | `erp/odoo` (custom string — `source` is a free-form string per the .msg, and `erp/odoo` carries the provenance a generic ROS4HRI consumer can route on; `REMOTE_SUPERVISOR` was rejected because it implies a remote human, and `UNKNOWN_AGENT` would lose useful provenance) | `MODALITY_OTHER` (standard — ERP form submission isn't speech / motion / touchscreen) | `{"activity":"manufacturing_order","goal":"fulfill_kit","object":{"type":"bom","id":"<bom_id>"},"project_id":"urn:ngsi-ld:Project:...","bom":[{"sku":"...","qty":...}, ...]}` — `object.id` is the BOM id read from Odoo (`mrp.bom.id`). For deployments that carry an explicit MO id, pass it through `bom_id` instead. | **Used — standard constant + free-form source + JSON payload** |
 
 For the **other** human-originated intents (HoloLens flows handled by
 the `hermes_main` companion nodes), the same envelope applies with this

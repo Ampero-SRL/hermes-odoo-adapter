@@ -1,6 +1,6 @@
-# 01 — ARISE context
+# 01 — Project context
 
-> **Audience:** ARISE reviewer or third-party robotics integrator.
+> **Audience:** robotics integrator.
 > **Reading time:** 5 minutes.
 > **Pre-requisites:** none.
 
@@ -61,14 +61,16 @@ non-trivial because:
 The adapter is the **single process** that owns those compositions, so the
 Mission Controller and the operator-facing apps stay simple.
 
-## ARISE alignment
+Developed within the ARISE robotics innovation programme.
 
-| ARISE concept | How the adapter contributes |
+## Technology alignment
+
+| Concept | How the adapter contributes |
 |---|---|
 | **Vulcanexus / ROS 2** | Built on `eprosima/vulcanexus:humble`. The adapter is a `rclpy.Node` hosted in a background thread inside a FastAPI process — a reusable pattern for embedding ERP/FIWARE bridges in a Vulcanexus container. Default ROS 2 QoS, `ROS_DOMAIN_ID=42`, Fast-DDS as the transport. |
 | **FIWARE / NGSI-LD** | Talks NGSI-LD natively to Orion-LD. Owns four canonical entity types (`Project`, `Reservation`, `Shortage`, `InventoryItem`) with public JSON Schemas and a project-specific `@context` — see [`contracts/`](../contracts/). |
 | **DDS NGSI-LD integration** | The FIWARE DDS Enabler is **N/A** for this module: the bridging is performed in-process in `ros2_node.py` ↔ `orion_client.py`. The canonical topic ↔ entity mapping is documented in [`config/README.md`](../config/README.md) so a third party can swap in the enabler if they want. |
-| **ROS4HRI / ROS4RI** | **Used.** The adapter publishes `hri_actions_msgs/Intent` on the canonical `/intents` topic for the Odoo planner manufacturing-order event it ingests (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`, JSON `data` carrying activity / goal / object / project_id / BOM). Operator-side intents from the HoloLens AR app (project selection, placement confirmation, assembly complete) live in companion ROS 2 nodes closer to the source. Mapping table: [`02_interfaces.md`](02_interfaces.md) §4. |
+| **ROS4HRI / ROS4RI** | **Used.** The adapter publishes `hri_actions_msgs/Intent` on the canonical `/intents` topic for the Odoo planner manufacturing-order event it ingests (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`, JSON `data` carrying activity / goal / object / project_id / BOM). Operator-side intents from the HoloLens AR app (project selection, placement confirmation, assembly complete) live in companion ROS 2 nodes closer to the source. Mapping table: [`02_interfaces.md`](02_interfaces.md). |
 
 ## Role in the HERMES TRL6-7 demonstrator
 

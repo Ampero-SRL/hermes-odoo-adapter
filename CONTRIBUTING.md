@@ -1,10 +1,9 @@
 # Contributing to the HERMES Odoo Adapter
 
-Thanks for thinking about contributing. This project is an
-**ARISE Reusable HRI Module** (D4 / Stage 4 deliverable); the
-expectation is that it stays stable until **2033-06-30** (six years
-after ARISE ends), so the bar for changes that land on `main` is
-intentionally higher than a typical research repo.
+Thanks for thinking about contributing. This project is a reusable HRI
+integration module that is intended to remain stable and maintained
+long-term, so the bar for changes that land on `main` is intentionally
+higher than a typical research repo.
 
 ## Quick checklist
 

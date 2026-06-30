@@ -7,7 +7,7 @@
 [![Vulcanexus](https://img.shields.io/badge/Vulcanexus-Humble-orange.svg)](https://vulcanexus.io/)
 [![Docker](https://img.shields.io/badge/Docker-Compose-blue.svg)](https://docs.docker.com/compose/)
 
-A **hybrid ROS2 + FastAPI adapter** that bridges **Odoo ERP**, **FIWARE Context Brokers**, and **warehouse systems** (Hanel vertical lifts via SOAP) for smart manufacturing in the HERMES/ARISE project. Built on **Vulcanexus Humble** (eProsima Fast-DDS) for native DDS communication.
+A **hybrid ROS2 + FastAPI adapter** that bridges **Odoo ERP**, **FIWARE Context Brokers**, and **warehouse systems** (Hanel vertical lifts via SOAP) for smart manufacturing. Built on **Vulcanexus Humble** (eProsima Fast-DDS) for native DDS communication. Developed within the ARISE robotics innovation programme.
 
 ## Key Features
 
@@ -23,21 +23,18 @@ A **hybrid ROS2 + FastAPI adapter** that bridges **Odoo ERP**, **FIWARE Context 
 - **Production Ready**: Circuit breakers, retry logic, Prometheus metrics, structured logging
 - **Docker-First**: Vulcanexus Humble base image with multi-stage build
 
-## Connection with ARISE
+## Middleware integration
 
-The adapter is the integration backbone of an **ARISE Reusable HRI
-Module**: it composes the four All-in-one-middleware pillars in a
-single process so a downstream Mission Controller stays simple.
+The adapter is the integration backbone of a reusable HRI module: it
+composes four middleware pillars in a single process so a downstream
+Mission Controller stays simple.
 
-| ARISE pillar | How the adapter uses it |
+| Pillar | How the adapter uses it |
 |---|---|
 | **Vulcanexus / ROS 2** | Runs on `eprosima/vulcanexus:humble` (`vulcanexus-humble-core 2.8.0`, Fast-DDS 2.14.4). The `rclpy` node lives in a background thread inside FastAPI. Exposes 5 service servers + **4 publishers** (`/hermes/inventory_updates`, `/hermes/warehouse/tray_state` latched, `/diagnostics`, **`/intents`** — ROS4HRI) + 1 subscriber over `ROS_DOMAIN_ID=42`. |
 | **FIWARE / NGSI-LD** | Owns four canonical entity types (`Project`, `Reservation`, `Shortage`, `InventoryItem`) against Orion-LD, with public JSON Schemas in [`contracts/schemas/`](contracts/schemas/) and a project-specific `@context` in [`contracts/context/`](contracts/context/). |
 | **DDS-NGSI-LD integration** | In-process bridging (`ros2_node.py` ↔ `orion_client.py`). The FIWARE DDS Enabler is N/A; the canonical topic↔entity mapping is documented in [`config/README.md`](config/README.md) for any third party who wants to plug the enabler in. |
 | **ROS4HRI / ROS4RI** | Publishes [`hri_actions_msgs/Intent`](https://github.com/ros4hri/hri_actions_msgs/blob/humble-devel/msg/Intent.msg) on the canonical `/intents` topic for every Odoo planner manufacturing-order event (`intent=START_ACTIVITY`, `source=erp/odoo`, `modality=MODALITY_OTHER`). |
-
-For the full report-level narrative see
-[`docs/01_arise_context.md`](docs/01_arise_context.md).
 
 ## Architecture
 
@@ -154,9 +151,6 @@ Reservation top-up, Mission Controller pick).
 | **Teleoperation / remote supervision** | Partial — operator selection from the HoloLens AR app is propagated back to FIWARE. |
 | Collaborative assembly tasks supported | (i) BOM resolution + shortage detection, (ii) warehouse pick orchestration, (iii) stock consume / produce, (iv) Mission-state bridging to FIWARE, (v) ROS4HRI Intent publication for the Odoo planner. |
 
-For the mission/task-mapping detail see
-[`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md).
-
 ## Off-the-shelf capabilities
 
 | Capability | Input | Output | Interface | Status |
@@ -166,11 +160,11 @@ For the mission/task-mapping detail see
 | BOM resolution + shortage detection | NGSI-LD `Project` create | `Reservation` + `Shortage` entities | NGSI-LD | Implemented |
 | Inventory streaming | (background worker) | `/hermes/inventory_updates` topic + NGSI-LD `InventoryItem` PATCH | DDS / NGSI-LD | Implemented |
 | Mission-state → FIWARE bridge | DDS subscription | NGSI-LD entity patches | DDS / NGSI-LD | Implemented |
-| **ROS4HRI Intent publishing** | Odoo MO ingestion event | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY` / `source=erp/odoo`) | DDS (ROS4HRI) | Implemented (Sprint 0.4) |
+| **ROS4HRI Intent publishing** | Odoo MO ingestion event | `hri_actions_msgs/Intent` on `/intents` (`START_ACTIVITY` / `source=erp/odoo`) | DDS (ROS4HRI) | Implemented |
 
 ### Key Components
 
-- **HermesAdapterNode** (`ros2_node.py`): ROS2 node with 5 service servers, 4 publishers (`/hermes/inventory_updates`, `/hermes/warehouse/tray_state` latched, `/diagnostics`, `/intents` for ROS4HRI Sprint 0.4) and 1 subscriber (`/hermes/mission_state`), running in a background thread alongside FastAPI
+- **HermesAdapterNode** (`ros2_node.py`): ROS2 node with 5 service servers, 4 publishers (`/hermes/inventory_updates`, `/hermes/warehouse/tray_state` latched, `/diagnostics`, `/intents` for ROS4HRI) and 1 subscriber (`/hermes/mission_state`), running in a background thread alongside FastAPI
 - **WarehouseClient** (`warehouse/`): Abstract interface with `HanelSoapClient` (zeep-based SOAP 1.1) and `NullWarehouseClient` (dev stub)
 - **WarehouseSyncWorker** (`workers/warehouse_sync.py`): Article bootstrap, inbound detection, inventory reconciliation
 - **Project Sync Worker**: Listens to Project requests, queries Odoo, creates Reservations/Shortages
@@ -307,7 +301,7 @@ See [.env.example](./.env.example) for complete configuration options.
 | `/hermes/inventory_updates` | `InventoryUpdate` | Published | Stock change events |
 | `/hermes/warehouse/tray_state` | `Int16` (latched) | Published | Latched current-tray state from the Hänel HOST-COM client |
 | `/diagnostics` | `DiagnosticArray` | Published | Adapter health (warehouse / Odoo / Orion subsystems) |
-| `/intents` | `hri_actions_msgs/Intent` | Published | **ROS4HRI alignment (Sprint 0.4)** — fired by `HermesAdapterNode.publish_planner_intent()` when `ProjectSyncWorker` ingests an Odoo MO. See [`docs/02_interfaces.md`](docs/02_interfaces.md) §4. |
+| `/intents` | `hri_actions_msgs/Intent` | Published | **ROS4HRI alignment** — fired by `HermesAdapterNode.publish_planner_intent()` when `ProjectSyncWorker` ingests an Odoo MO. See [`docs/02_interfaces.md`](docs/02_interfaces.md). |
 | `/hermes/mission_state` | `std_msgs/String` (JSON) | Subscribed | Mission state → FIWARE sync (absorbs the old ROS-FIWARE bridge) |
 
 ### Service Usage Examples
@@ -510,11 +504,11 @@ JSON logs with correlation IDs via `structlog`:
 
 ## Related Documentation
 
-- [`docs/01_arise_context.md`](docs/01_arise_context.md) — ARISE alignment narrative.
+- [`docs/01_arise_context.md`](docs/01_arise_context.md) — project context and middleware alignment narrative.
 - [`docs/02_interfaces.md`](docs/02_interfaces.md) — ROS 2 / NGSI-LD / HTTP / ROS4HRI canonical reference.
 - [`docs/03_installation_and_hello_world.md`](docs/03_installation_and_hello_world.md) — fresh-clone Hello World in five commands.
 - [`docs/04_basic_demo_how_to_use.md`](docs/04_basic_demo_how_to_use.md) — end-to-end Project → Shortage / Reservation walkthrough.
-- [`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md) — how the open module slots into the TRL6-7 demonstrator.
+- [`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md) — how the module slots into the larger robotics cell.
 - [FIWARE Orion-LD](https://github.com/FIWARE/context.Orion-LD) — NGSI-LD Context Broker
 - [Vulcanexus](https://vulcanexus.io/) — eProsima Fast-DDS distribution for ROS2
 - [Odoo](https://github.com/odoo/odoo) — Open Source ERP
@@ -526,7 +520,7 @@ JSON logs with correlation IDs via `structlog`:
   HoloLens AR app — those are independent modules in `hermes_main/`,
   `hermes_asrs_station/`, and `ARISE-AR-APP/`.
 - The Hänel HOST-COM client is validated only against the MP 12N
-  controller in the HERMES TRL6-7 demonstrator. Other Hänel models or
+  controller in the HERMES demonstrator cell. Other Hänel models or
   other vendors need a fresh `WarehouseClient` implementation
   (≈300 LOC).
 - ROS4HRI **operator** intents (HoloLens placement-confirmation /
@@ -538,7 +532,7 @@ JSON logs with correlation IDs via `structlog`:
   deployments today are single-host.
 - The shipped Vulcanexus image contains the DDS Router / DDS Recorder
   / Dynamic Types tooling but the adapter doesn't yet exercise them
-  (listed under §3.3.10 future work).
+  (future work).
 
 ## Contact
 

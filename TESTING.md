@@ -23,10 +23,10 @@ As of `2026-06-11` against `main`:
 | `tests/unit/` | **112** | **18** | 0 | Suite is green. The 18 skips are documented stale tests (see below). |
 | `tests/integration/` | not run in CI yet | — | — | Requires the demo Docker Compose stack. Manual validation is captured in [`media/screenshots/`](media/screenshots/). |
 
-## What got fixed during the D4 polish
+## What got fixed
 
-Going into the D4 submission window the suite had 31 failing tests
-(97 passing). The fix-up batch landed two distinct waves:
+The suite previously had 31 failing tests (97 passing). The fix-up
+batch landed two distinct waves:
 
 1. **Mechanical fixes** to tests + a few real production-code
    follow-ups —
@@ -37,7 +37,7 @@ Going into the D4 submission window the suite had 31 failing tests
      `create_subscription` contract: a 201-No-Content success now
      triggers a follow-up `get_subscription` verification, so the test
      mocks both. Two new tests cover the `OrionAPIError` and the
-     "404-on-verify" defensive paths added during the code review.
+     "404-on-verify" defensive paths.
    - `test_workers.py` updated for the canonical subscription URN
      (`urn:ngsi-ld:Subscription:hermes-project`) and the flat
      `entities[]` config shape.
@@ -62,14 +62,14 @@ Going into the D4 submission window the suite had 31 failing tests
 
 The skips are honest: they document tech debt rather than hide
 failures, and the *user-visible* behaviour they used to test is
-still covered by the end-to-end captures from Sprint 1.5 (and
-re-captured into `media/screenshots/` for the D4 submission).
+still covered by the end-to-end captures under
+`media/screenshots/`.
 
 ## Why the failing-test count isn't blocking
 
-Even before the polish above, the substantive validation for this
-D4 submission was always the **fresh-clone reproducibility
-evidence** captured in [`media/screenshots/`](media/screenshots/):
+The substantive validation has always been the **fresh-clone
+reproducibility evidence** captured in
+[`media/screenshots/`](media/screenshots/):
 
 - `01_healthz.log` + `02_readyz.log` — the adapter's two probe
   endpoints return the documented shapes against a clean stack.
@@ -77,7 +77,7 @@ evidence** captured in [`media/screenshots/`](media/screenshots/):
   Intent publisher coming up on `/intents` and being wired into the
   worker.
 - `05_intent_published.log` — the actual `Published ROS4HRI Intent`
-  lines from the Sprint 0.4 publisher firing during the demo flow.
+  lines from the publisher firing during the demo flow.
 - `06_project_entity.log` + `07_shortage_entity.log` +
   `09_reservation_entity.log` — the NGSI-LD entities Orion
   materialised during the demo run.

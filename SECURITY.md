@@ -21,8 +21,8 @@ public advisory is coordinated with the reporter.
 | Version | Supported |
 |---|---|
 | `main` branch | ✅ (latest fixes land here first) |
-| `v0.4.x` tags (D4 submission line) | ✅ (security-only patches until 2033-06-30 per the ARISE SGA stability commitment) |
-| Anything before `v0.4.0-d4` | ❌ (pre-release; please move forward) |
+| `v0.4.x` tags | ✅ (security-only patches; intended to remain stable and maintained long-term) |
+| Anything before `v0.4.0` | ❌ (pre-release; please move forward) |
 
 ## Scope
 
@@ -60,4 +60,4 @@ Production deployments are expected to put the adapter behind a
 reverse proxy that enforces TLS + auth, and to replace the demo
 defaults with secrets pulled from your normal secret store. See
 [`docs/05_role_in_demonstrator.md`](docs/05_role_in_demonstrator.md)
-for the actual production posture in the HERMES TRL6-7 demonstrator.
+for the production deployment posture.

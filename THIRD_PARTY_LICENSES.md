@@ -34,7 +34,7 @@ into the runtime workspace:
 | Package | Source | License | Used for |
 |---|---|---|---|
 | `hermes_msgs` | vendored at [`ros2_ws/src/hermes_msgs/`](ros2_ws/src/hermes_msgs/) (snapshot of `hermes_main`@`9987978`) | Apache-2.0 | The 5 service / 1 message types the adapter publishes (`WarehousePick`, `ConsumeStock`, `ProduceStock`, `WarehousePickStatus`, `WarehousePickCancel`, `InventoryUpdate`). |
-| `hri_actions_msgs` | upstream [`ros4hri/hri_actions_msgs@humble-devel`](https://github.com/ros4hri/hri_actions_msgs) — fetched via [`ros2_ws/deps.repos`](ros2_ws/deps.repos) at build time | Apache-2.0 | The ROS4HRI `Intent` message the adapter publishes on `/intents` (Sprint 0.4). |
+| `hri_actions_msgs` | upstream [`ros4hri/hri_actions_msgs@humble-devel`](https://github.com/ros4hri/hri_actions_msgs) — fetched via [`ros2_ws/deps.repos`](ros2_ws/deps.repos) at build time | Apache-2.0 | The ROS4HRI `Intent` message the adapter publishes on `/intents`. |
 
 The `hermes_odoo_adapter_launch` ament_python wrapper at
 [`ros2_ws/src/hermes_odoo_adapter_launch/`](ros2_ws/src/hermes_odoo_adapter_launch/)

@@ -62,7 +62,7 @@ compose file's `env_file` / `environment` blocks.
 The adapter is published as a Poetry-managed Python application
 (`pyproject.toml`, not `package.xml`). Wrapping it in a colcon
 `ros-python` package — so `ros2 launch hermes_odoo_adapter
-hermes_odoo_adapter.launch.py` resolves by name — is on the backlog if
-the ARISE ecosystem starts expecting `ros2 pkg list` to surface the
-adapter; until then the path-based invocation above is the simplest
-correct integration with the ROS 2 launch system.
+hermes_odoo_adapter.launch.py` resolves by name — is on the backlog for
+deployments that expect `ros2 pkg list` to surface the adapter; until
+then the path-based invocation above is the simplest correct
+integration with the ROS 2 launch system.

@@ -3,7 +3,7 @@
 Minimal runnable inputs that drive the adapter through the demo
 Docker Compose stack (`docker/docker-compose.demo.yml`). Each example
 includes a one-line description, the command to run, and the expected
-output shape so a reviewer can tell at a glance whether the adapter is
+output shape so you can tell at a glance whether the adapter is
 behaving.
 
 > **Pre-requisites:** the demo stack is running (see

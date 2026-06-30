@@ -3,7 +3,7 @@
 This folder is reserved for runtime configuration files (Vulcanexus / Fast-DDS
 QoS profiles, DDS Enabler configuration, simulator overrides, etc.).
 
-The remainder of this page answers the D4 §3.2.6 requirement on the
+The remainder of this page documents the
 **FIWARE DDS-NGSI-LD integration / DDS Enabler configuration**.
 
 ## DDS Enabler — status: **N/A**
@@ -58,8 +58,8 @@ or `qos.yaml` and be sourced by the entrypoint script.
 
 - A FIWARE DDS Enabler configuration could be added as an optional
   side-car path for third parties that want a wire-compatible NGSI-LD
-  bridge without running the adapter; this is **not** on the D4
-  submission scope.
+  bridge without running the adapter; this is **not** currently
+  implemented.
 - Per-topic QoS overrides (latched durability for state topics, reliable
   for service replies) are currently inherited from the ROS 2 defaults
   and should be documented + tuned in a follow-up.
